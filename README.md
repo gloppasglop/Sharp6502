@@ -9,8 +9,7 @@ Wanted to try that after seeing  [Dave Poo](https://www.youtube.com/c/DavePoo) Y
 
 ## Links and reference documentaion
 
-
-* http://www.slack.net/~ant/nes-emu/6502.html
+* https://www.masswerk.at/6502/6502_instruction_set.html
 * https://floooh.github.io/2019/12/13/cycle-stepped-6502.html
 * https://github.com/eteran/pretendo/blob/master/doc/cpu/6502.txt#L945
 * https://floooh.github.io/tiny8bit/c64-ui.html
