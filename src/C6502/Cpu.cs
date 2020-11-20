@@ -121,6 +121,7 @@ namespace C6502
             }
             RW=true;
             switch(IR) {
+                // LDA
                 case 0xA5:
                     _LDA(addressingModes.ZEROPAGE,_opcycle);
                     break;
@@ -139,6 +140,40 @@ namespace C6502
                 case 0xB9:
                     _LDA(addressingModes.ABSOLUTEY,_opcycle);
                     break;
+                // LDX
+                case 0xA6:
+                    _LDX(addressingModes.ZEROPAGE,_opcycle);
+                    break;
+                case 0xB6:
+                    _LDX(addressingModes.ZEROPAGEY,_opcycle);
+                    break;
+                case 0xA2:
+                    _LDX(addressingModes.IMMEDIATE,_opcycle);
+                    break;
+                case 0xAE:
+                    _LDX(addressingModes.ABSOLUTE,_opcycle);
+                    break;
+                case 0xBE:
+                    _LDX(addressingModes.ABSOLUTEY,_opcycle);
+                    break;
+
+                // LDY
+                case 0xA4:
+                    _LDY(addressingModes.ZEROPAGE,_opcycle);
+                    break;
+                case 0xB4:
+                    _LDY(addressingModes.ZEROPAGEX,_opcycle);
+                    break;
+                case 0xA0:
+                    _LDY(addressingModes.IMMEDIATE,_opcycle);
+                    break;
+                case 0xAC:
+                    _LDY(addressingModes.ABSOLUTE,_opcycle);
+                    break;
+                case 0xBC:
+                    _LDY(addressingModes.ABSOLUTEX,_opcycle);
+                    break;
+
                 case 0x20:
                     _JSR(addressingModes.ABSOLUTE,_opcycle);
                     break;
@@ -394,6 +429,369 @@ namespace C6502
             }
 
         }
+
+        private void _LDX(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMMEDIATE: {
+                    switch(opcycle) {
+                        case 0: {            
+                            PC++;
+                            AddrPins = PC;
+                            PC++;
+                            break;
+                        }
+                        case 1: {
+                            X = DataPins;
+                            setNZ(X);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ZEROPAGE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            X = DataPins;
+                            setNZ(X);
+
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ZEROPAGEY : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = AddrPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = ( DataPins+Y )  & 0x00FF;
+                            break;
+                        }
+
+                        case 3: {
+                            X = DataPins;
+                            setNZ(X);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 3: {
+                            X = DataPins;
+                            setNZ(X);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+                case addressingModes.ABSOLUTEY : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + Y) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins >= AD ) {
+                                X = DataPins;
+                                setNZ(X);
+                                AddrPins = PC;
+                                SYNC = true;
+                            } else {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            break;
+                        }
+
+                        case 4: {
+                            X = DataPins;
+                            setNZ(X);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+
+        }
+
+        private void _LDY(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMMEDIATE: {
+                    switch(opcycle) {
+                        case 0: {            
+                            PC++;
+                            AddrPins = PC;
+                            PC++;
+                            break;
+                        }
+                        case 1: {
+                            Y = DataPins;
+                            setNZ(Y);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ZEROPAGE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            Y = DataPins;
+                            setNZ(Y);
+
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ZEROPAGEX : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = AddrPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = ( DataPins+X )  & 0x00FF;
+                            break;
+                        }
+
+                        case 3: {
+                            Y = DataPins;
+                            setNZ(Y);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 3: {
+                            Y = DataPins;
+                            setNZ(Y);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+                case addressingModes.ABSOLUTEX : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + X) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins >= AD ) {
+                                Y = DataPins;
+                                setNZ(Y);
+                                AddrPins = PC;
+                                SYNC = true;
+                            } else {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            break;
+                        }
+
+                        case 4: {
+                            Y = DataPins;
+                            setNZ(Y);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+
+        }
+
 
         private void _JSR(addressingModes addressing, uint opcycle) {
             switch(opcycle) {
