@@ -50,7 +50,7 @@ namespace C6502
         public uint S { get => _S; set => _S = value & 0xFF;}
 
         // Procesor status
-        public uint P { get => _P; set => _P = value & 0x0F;}
+        public uint P { get => _P; set => _P = value ;}
 
         // Program Counter
         public uint PC { get => _PC; set => _PC = value & 0xFFFF;}
@@ -140,6 +140,12 @@ namespace C6502
                 case 0xB9:
                     _LDA(addressingModes.ABSOLUTEY,_opcycle);
                     break;
+                case 0xA1:
+                    _LDA(addressingModes.INDEXEDINDIRECT,_opcycle);
+                    break;
+                case 0xB1:
+                    _LDA(addressingModes.INDIRECTINDEXED,_opcycle);
+                    break;
                 // LDX
                 case 0xA6:
                     _LDX(addressingModes.ZEROPAGE,_opcycle);
@@ -180,15 +186,114 @@ namespace C6502
                 case 0xE8:
                     _INX(addressingModes.IMPLIED,_opcycle);
                     break;
+                case 0xC8:
+                    _INY(addressingModes.IMPLIED,_opcycle);
+                    break;
                 case 0x88:
                     _DEY(addressingModes.IMPLIED,_opcycle);
                     break;
                 case 0xE6:
                     _INC(addressingModes.ZEROPAGE,_opcycle);
                     break;
+                case 0xF6:
+                    _INC(addressingModes.ZEROPAGEX,_opcycle);
+                    break;
+                case 0xEE:
+                    _INC(addressingModes.ABSOLUTE,_opcycle);
+                    break;
+                case 0xFE:
+                    _INC(addressingModes.ABSOLUTEX,_opcycle);
+                    break;
+                case 0xC6:
+                    _DEC(addressingModes.ZEROPAGE,_opcycle);
+                    break;
+                case 0xD6:
+                    _DEC(addressingModes.ZEROPAGEX,_opcycle);
+                    break;
+                case 0xCE:
+                    _DEC(addressingModes.ABSOLUTE,_opcycle);
+                    break;
+                case 0xDE:
+                    _DEC(addressingModes.ABSOLUTEX,_opcycle);
+                    break;
                 case 0xEA:
                     _NOP(addressingModes.IMPLIED,_opcycle);
                     break;
+
+                // STA
+                case 0x85:
+                    _STA(addressingModes.ZEROPAGE,_opcycle);
+                    break;
+                case 0x95:
+                    _STA(addressingModes.ZEROPAGEX,_opcycle);
+                    break;
+                case 0x8D:
+                    _STA(addressingModes.ABSOLUTE,_opcycle);
+                    break;
+                case 0x9D:
+                    _STA(addressingModes.ABSOLUTEX,_opcycle);
+                    break;
+                case 0x99:
+                    _STA(addressingModes.ABSOLUTEY,_opcycle);
+                    break;
+                case 0x81:
+                    _STA(addressingModes.INDEXEDINDIRECT,_opcycle);
+                    break;
+
+                // STX
+                case 0x86:
+                    _STX(addressingModes.ZEROPAGE,_opcycle);
+                    break;
+                case 0x96:
+                    _STX(addressingModes.ZEROPAGEY,_opcycle);
+                    break;
+                case 0x8E:
+                    _STX(addressingModes.ABSOLUTE,_opcycle);
+                    break;
+
+                // STY
+                case 0x84:
+                    _STY(addressingModes.ZEROPAGE,_opcycle);
+                    break;
+                case 0x94:
+                    _STY(addressingModes.ZEROPAGEX,_opcycle);
+                    break;
+                case 0x8C:
+                    _STY(addressingModes.ABSOLUTE,_opcycle);
+                    break;
+
+                case 0x38:
+                    _SEC(addressingModes.IMPLIED,_opcycle);
+                    break;
+
+                case 0xF8:
+                    _SED(addressingModes.IMPLIED,_opcycle);
+                    break;
+
+                case 0x78:
+                    _SEI(addressingModes.IMPLIED,_opcycle);
+                    break;
+
+                case 0x18:
+                    _CLC(addressingModes.IMPLIED,_opcycle);
+                    break;
+
+                case 0xD8:
+                    _CLD(addressingModes.IMPLIED,_opcycle);
+                    break;
+
+                case 0x58:
+                    _CLI(addressingModes.IMPLIED,_opcycle);
+                    break;
+
+                case 0xB8:
+                    _CLV(addressingModes.IMPLIED,_opcycle);
+                    break;
+
+                case 0xCA:
+                    _DEX(addressingModes.IMPLIED,_opcycle);
+                    break;
+
                 default:
                     Console.WriteLine($"Unhandled opcode {IR}");
                     throw new System.InvalidOperationException(String.Format("Unhandled opcode {0,2:X2}",IR));
@@ -410,6 +515,105 @@ namespace C6502
                         }
 
                         case 4: {
+                            A = DataPins;
+                            setNZ(A);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.INDEXEDINDIRECT : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins =  ( DataPins + X) &0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AD = DataPins;
+                            AddrPins =  ( AddrPins + 1) &0xFF;
+                            break;
+                        }
+
+                        case 4: {
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 5: {
+                            A = DataPins;
+                            setNZ(A);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.INDIRECTINDEXED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+                        case 2: {
+                            AD = DataPins;
+                            AddrPins = (AddrPins+1) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins =  DataPins <<8 | (AD + Y) & 0xFF;
+                            AD = DataPins << 8 | AD;
+                            break;
+                        }
+
+                        case 4: {
+                            if ( AddrPins >= AD) {
+                                A = DataPins;
+                                setNZ(A);
+                                AddrPins = PC;
+                                SYNC = true;
+                            } else {
+                                AddrPins += 0x0100;
+                            }
+
+                            break;
+                        }
+
+                        case 5: {
                             A = DataPins;
                             setNZ(A);
                             AddrPins = PC;
@@ -792,6 +996,760 @@ namespace C6502
 
         }
 
+         private void _STA(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.ZEROPAGE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            DataPins = A;
+                            RW = false;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ZEROPAGEX : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            AD = AddrPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = ( AD+X )  & 0x00FF;
+                            DataPins = A;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            DataPins = A;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTEX : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + X) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins < AD ) {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            DataPins = A;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTEY : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + Y) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins < AD ) {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            DataPins = A;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                } 
+                case addressingModes.INDEXEDINDIRECT : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins =  ( DataPins + X) &0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AD = DataPins;
+                            AddrPins =  ( AddrPins + 1) &0xFF;
+                            break;
+                        }
+
+                        case 4: {
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            DataPins = A;
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+ 
+                case addressingModes.INDIRECTINDEXED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+                        case 2: {
+                            AD = DataPins;
+                            AddrPins = (AddrPins+1) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins =  DataPins <<8 | (AD + Y) & 0xFF;
+                            AD = DataPins << 8 | AD;
+                            break;
+                        }
+
+                        case 4: {
+                            if ( AddrPins < AD) {
+                                AddrPins = (AddrPins + 0x0100) & 0xFFFF;
+                            }
+                            DataPins = A;
+                            RW = true;
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                } 
+ 
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+
+        }
+
+        private void _STX(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.ZEROPAGE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            DataPins = X;
+                            RW = false;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ZEROPAGEY : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            AD = AddrPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = ( AD+Y )  & 0x00FF;
+                            DataPins = X;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            DataPins = X;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+ 
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+
+        }
+
+        private void _STY(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.ZEROPAGE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            DataPins = Y;
+                            RW = false;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ZEROPAGEX : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            AD = AddrPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = ( AD+X )  & 0x00FF;
+                            DataPins = Y;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTE : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            DataPins = Y;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+ 
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+
+        }
+
+        private void _SEC(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            P |= (uint) StatusFlagsMask.C;
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+
+        private void _SED(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            P |= (uint) StatusFlagsMask.D;
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+
+        private void _SEI(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            P |= (uint) StatusFlagsMask.I;
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+
+        private void _CLC(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            P &= (uint) ~StatusFlagsMask.C;
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+        private void _CLD(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            P &= (uint) ~StatusFlagsMask.D;
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+        private void _CLI(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            P &= (uint) ~StatusFlagsMask.I;
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+
+        private void _CLV(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            P &= (uint) ~StatusFlagsMask.V;
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+
+        private void _DEX(addressingModes addressing, uint opcycle) {
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            X = ( X -1 ) & 0xFF;
+                            setNZ(X);
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+
 
         private void _JSR(addressingModes addressing, uint opcycle) {
             switch(opcycle) {
@@ -866,6 +1824,26 @@ namespace C6502
                 }
             }
         }
+        private void _INY(addressingModes addressing , uint opcycle) {
+            switch(opcycle) {
+                case 0: {
+                    PC++;
+                    AddrPins = PC;
+                    break;
+                }
+                case 1: {
+                    AddrPins = PC;
+                    Y = (Y + 1 ) & 0xFF;
+                    setNZ(Y);
+                    SYNC = true;
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+        }
+
 
         private void _DEY(addressingModes addressing , uint opcycle) {
             switch(opcycle) {
@@ -911,7 +1889,8 @@ namespace C6502
                         }
 
                         case 3: {
-                            DataPins++;
+                            DataPins = (DataPins + 1) & 0xFF;
+                            setNZ(DataPins);
                             RW = false;
                             break;
                         }
@@ -928,11 +1907,353 @@ namespace C6502
                     }                    
                     break;
                 }
+                case addressingModes.ZEROPAGEX: {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = (AddrPins + X) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            DataPins = (DataPins + 1) & 0xFF;
+                            setNZ(DataPins);
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
+                case addressingModes.ABSOLUTE: {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            DataPins = (DataPins + 1) & 0xFF;
+                            setNZ(DataPins);
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
+                case addressingModes.ABSOLUTEX: {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins = DataPins <<8 | (AD+X) & 0xFF;
+                            AD =  DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins < AD) {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            break;
+                        }
+
+                        case 4: {
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            DataPins = (DataPins + 1) & 0xFF;
+                            setNZ(DataPins);
+                            RW = false;
+                            break;
+                        }
+
+                        case 6: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
                 default: {
                     throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
                 }
             }
         }
+        private void _DEC(addressingModes addressing , uint opcycle) {
+            switch(addressing) {
+                case addressingModes.ZEROPAGE: {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = (DataPins - 1) & 0xFF;
+                            setNZ(DataPins);
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
+                case addressingModes.ZEROPAGEX: {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = (AddrPins + X) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            DataPins = (DataPins - 1) & 0xFF;
+                            setNZ(DataPins);
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
+                case addressingModes.ABSOLUTE: {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            DataPins = (DataPins - 1) & 0xFF;
+                            setNZ(DataPins);
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
+                case addressingModes.ABSOLUTEX: {
+                  switch(opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins = DataPins <<8 | (AD+X) & 0xFF;
+                            AD =  DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins < AD) {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            break;
+                        }
+
+                        case 4: {
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            DataPins = (DataPins - 1) & 0xFF;
+                            setNZ(DataPins);
+                            RW = false;
+                            break;
+                        }
+
+                        case 6: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
+                default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
+            }
+        }
+
 
         private void _NOP(addressingModes addressing , uint opcycle) {
             switch(opcycle) {
