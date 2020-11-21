@@ -18,8 +18,8 @@ jobs:
       with:
         dotnet-version: 3.1.301
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore ./src/C6502/C6502.csproj
     - name: Build
-      run: dotnet build --configuration Release --no-restore .\src\C6502
+      run: dotnet build --configuration Release --no-restore ./src/C6502/C6502.csproj
     - name: Test
-      run: dotnet test --no-restore --verbosity normal .\tests\C6502.Tests
+      run: dotnet test --no-restore --verbosity normal ./tests/C6502.Tests/C6502.Tests.csproj
