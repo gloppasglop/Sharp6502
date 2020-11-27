@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace C6502
 {
@@ -16,18 +17,40 @@ namespace C6502
 
     public enum addressingModes {
         IMPLIED,
+        IMPLIED_PUSH,
+        IMPLIED_PULL,
+        IMPLIED_BRK,
+        IMPLIED_RTS,
+        IMPLIED_RTI,
         ACCUMULATOR,
         IMMEDIATE,
-        ZEROPAGE,
-        ZEROPAGEX,
-        ZEROPAGEY,
+        ZEROPAGE_R,
+        ZEROPAGE_RMW,
+        ZEROPAGE_W,
+        ZEROPAGEX_R,
+        ZEROPAGEX_RMW,
+        ZEROPAGEX_W,
+        ZEROPAGEY_R,
+        ZEROPAGEY_RMW,
+        ZEROPAGEY_W,
         RELATIVE,
-        ABSOLUTE,
-        ABSOLUTEX,
-        ABSOLUTEY,
+        ABSOLUTE_JMP,
+        ABSOLUTE_R,
+        ABSOLUTE_RMW,
+        ABSOLUTE_W,
+        ABSOLUTEX_R,
+        ABSOLUTEX_RMW,
+        ABSOLUTEX_W,
+        ABSOLUTEY_R,
+        ABSOLUTEY_RMW,
+        ABSOLUTEY_W,
         INDIRECT,
-        INDEXEDINDIRECT,
-        INDIRECTINDEXED
+        INDEXEDINDIRECT_R,
+        INDEXEDINDIRECT_RMW,
+        INDEXEDINDIRECT_W,
+        INDIRECTINDEXED_R,
+        INDIRECTINDEXED_RMW,
+        INDIRECTINDEXED_W
 
 
     }
@@ -75,7 +98,7 @@ namespace C6502
         public bool PHY2 { get; set;}
 
         private uint _opcycle;
-        public uint IR { get; private set;}
+        public Instruction IR { get; set;}
 
  
 
@@ -93,11 +116,135 @@ namespace C6502
             Y = 0x00;
 
         }
+        private Dictionary<uint,Instruction> instructionSet;
+
         public Cpu() {
             Init();
+
+            this.instructionSet = new Dictionary<uint, Instruction>();
+            instructionSet.Add(0xA9,new LDA{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0xA5,new LDA{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0xB5,new LDA{ AddressingMode = addressingModes.ZEROPAGEX_R});
+            instructionSet.Add(0xAD,new LDA{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0xBD,new LDA{ AddressingMode = addressingModes.ABSOLUTEX_R});
+            instructionSet.Add(0xB9,new LDA{ AddressingMode = addressingModes.ABSOLUTEY_R});
+            instructionSet.Add(0xA1,new LDA{ AddressingMode = addressingModes.INDEXEDINDIRECT_R});
+            instructionSet.Add(0xB1,new LDA{ AddressingMode = addressingModes.INDIRECTINDEXED_R});
+
+            instructionSet.Add(0x69,new ADC{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0x65,new ADC{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0x75,new ADC{ AddressingMode = addressingModes.ZEROPAGEX_R});
+            instructionSet.Add(0x6D,new ADC{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0x7D,new ADC{ AddressingMode = addressingModes.ABSOLUTEX_R});
+            instructionSet.Add(0x79,new ADC{ AddressingMode = addressingModes.ABSOLUTEY_R});
+            instructionSet.Add(0x61,new ADC{ AddressingMode = addressingModes.INDEXEDINDIRECT_R});
+            instructionSet.Add(0x71,new ADC{ AddressingMode = addressingModes.INDIRECTINDEXED_R});
+
+            instructionSet.Add(0xC9,new CMP{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0xC5,new CMP{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0xD5,new CMP{ AddressingMode = addressingModes.ZEROPAGEX_R});
+            instructionSet.Add(0xCD,new CMP{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0xDD,new CMP{ AddressingMode = addressingModes.ABSOLUTEX_R});
+            instructionSet.Add(0xd9,new CMP{ AddressingMode = addressingModes.ABSOLUTEY_R});
+            instructionSet.Add(0xC1,new CMP{ AddressingMode = addressingModes.INDEXEDINDIRECT_R});
+            instructionSet.Add(0xD1,new CMP{ AddressingMode = addressingModes.INDIRECTINDEXED_R});
+
+            instructionSet.Add(0x29,new AND{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0x25,new AND{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0x35,new AND{ AddressingMode = addressingModes.ZEROPAGEX_R});
+            instructionSet.Add(0x2D,new AND{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0x3D,new AND{ AddressingMode = addressingModes.ABSOLUTEX_R});
+            instructionSet.Add(0x39,new AND{ AddressingMode = addressingModes.ABSOLUTEY_R});
+            instructionSet.Add(0x21,new AND{ AddressingMode = addressingModes.INDEXEDINDIRECT_R});
+            instructionSet.Add(0x31,new AND{ AddressingMode = addressingModes.INDIRECTINDEXED_R});
+ 
+            instructionSet.Add(0x09,new ORA{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0x05,new ORA{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0x15,new ORA{ AddressingMode = addressingModes.ZEROPAGEX_R});
+            instructionSet.Add(0x0D,new ORA{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0x1D,new ORA{ AddressingMode = addressingModes.ABSOLUTEX_R});
+            instructionSet.Add(0x19,new ORA{ AddressingMode = addressingModes.ABSOLUTEY_R});
+            instructionSet.Add(0x01,new ORA{ AddressingMode = addressingModes.INDEXEDINDIRECT_R});
+            instructionSet.Add(0x11,new ORA{ AddressingMode = addressingModes.INDIRECTINDEXED_R});
+
+            instructionSet.Add(0x49,new EOR{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0x45,new EOR{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0x55,new EOR{ AddressingMode = addressingModes.ZEROPAGEX_R});
+            instructionSet.Add(0x4D,new EOR{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0x5D,new EOR{ AddressingMode = addressingModes.ABSOLUTEX_R});
+            instructionSet.Add(0x59,new EOR{ AddressingMode = addressingModes.ABSOLUTEY_R});
+            instructionSet.Add(0x41,new EOR{ AddressingMode = addressingModes.INDEXEDINDIRECT_R});
+            instructionSet.Add(0x51,new EOR{ AddressingMode = addressingModes.INDIRECTINDEXED_R});
+
+ 
+            instructionSet.Add(0xA2,new LDX{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0xA6,new LDX{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0xB6,new LDX{ AddressingMode = addressingModes.ZEROPAGEY_R});
+            instructionSet.Add(0xAE,new LDX{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0xBE,new LDX{ AddressingMode = addressingModes.ABSOLUTEY_R});
+
+            instructionSet.Add(0xA0,new LDY{ AddressingMode = addressingModes.IMMEDIATE});
+            instructionSet.Add(0xA4,new LDY{ AddressingMode = addressingModes.ZEROPAGE_R});
+            instructionSet.Add(0xB4,new LDY{ AddressingMode = addressingModes.ZEROPAGEX_R});
+            instructionSet.Add(0xAC,new LDY{ AddressingMode = addressingModes.ABSOLUTE_R});
+            instructionSet.Add(0xBC,new LDY{ AddressingMode = addressingModes.ABSOLUTEX_R});
+
+            //instructionSet.Add(0x08,new PHP(addressingModes.IMPLIED));
+            instructionSet.Add(0x18,new CLC{ AddressingMode = addressingModes.IMPLIED});
+            //instructionSet.Add(0x28,new PLP(addressingModes.IMPLIED));
+            instructionSet.Add(0x38,new SEC{ AddressingMode = addressingModes.IMPLIED});
+            //instructionSet.Add(0x48,new PHA(addressingModes.IMPLIED));
+            instructionSet.Add(0x58,new CLI{ AddressingMode = addressingModes.IMPLIED});
+            //instructionSet.Add(0x68,new PLA(addressingModes.IMPLIED));
+            instructionSet.Add(0x78,new SEI{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0x88,new DEY{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0x8A,new TXA{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0x98,new TYA{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0x9A,new TXS{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xA8,new TAY{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xAA,new TAX{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xB8,new CLV{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xBA,new TSX{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xC8,new INY{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xD8,new CLD{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xE8,new INX{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xF8,new SED{ AddressingMode = addressingModes.IMPLIED});
+
+            instructionSet.Add(0xCA,new DEX{ AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0xEA,new NOP{ AddressingMode = addressingModes.IMPLIED});
+
+            instructionSet.Add(0x84,new STY{ AddressingMode = addressingModes.ZEROPAGE_W});
+            instructionSet.Add(0x85,new STA{ AddressingMode = addressingModes.ZEROPAGE_W});
+            instructionSet.Add(0x86,new STX{ AddressingMode = addressingModes.ZEROPAGE_W});
+
+            instructionSet.Add(0x94,new STY{ AddressingMode = addressingModes.ZEROPAGEX_W});
+            instructionSet.Add(0x95,new STA{ AddressingMode = addressingModes.ZEROPAGEX_W});
+            instructionSet.Add(0x96,new STX{ AddressingMode = addressingModes.ZEROPAGEY_W});
             
+            instructionSet.Add(0x8C,new STY{ AddressingMode = addressingModes.ABSOLUTE_W});
+            instructionSet.Add(0x8D,new STA{ AddressingMode = addressingModes.ABSOLUTE_W});
+            instructionSet.Add(0x8E,new STX{ AddressingMode = addressingModes.ABSOLUTE_W});
+            
+            instructionSet.Add(0x9D,new STA{ AddressingMode = addressingModes.ABSOLUTEX_W});
+            instructionSet.Add(0x99,new STA{ AddressingMode = addressingModes.ABSOLUTEY_W});
+
+            instructionSet.Add(0x81,new STA{ AddressingMode = addressingModes.INDEXEDINDIRECT_W});
+            instructionSet.Add(0x91,new STA{ AddressingMode = addressingModes.INDIRECTINDEXED_W});
+
+            instructionSet.Add(0xCE,new DEC{ AddressingMode = addressingModes.ABSOLUTE_RMW});
+            instructionSet.Add(0xC6,new DEC{ AddressingMode = addressingModes.ZEROPAGE_RMW});
+            instructionSet.Add(0xDE,new DEC{ AddressingMode = addressingModes.ABSOLUTEX_RMW});
+            instructionSet.Add(0xD6,new DEC{ AddressingMode = addressingModes.ZEROPAGEX_RMW});
+
+            instructionSet.Add(0xEE,new INC{ AddressingMode = addressingModes.ABSOLUTE_RMW});
+            instructionSet.Add(0xE6,new INC{ AddressingMode = addressingModes.ZEROPAGE_RMW});
+            instructionSet.Add(0xFE,new INC{ AddressingMode = addressingModes.ABSOLUTEX_RMW});
+            instructionSet.Add(0xF6,new INC{ AddressingMode = addressingModes.ZEROPAGEX_RMW});
+
+
+
         }
-        private void setNZ(uint value) {
+        public void setNZ(uint value) {
             if (value == 0) {
                 _P |= (uint) StatusFlagsMask.Z;
             } else {
@@ -113,291 +260,895 @@ namespace C6502
 
         public void Tick() {
 
+            addressingModes addressing;
             if (SYNC) {
                 // Data pins should contain opcode
-                IR = DataPins;
+                try {
+                    IR = instructionSet[DataPins];
+                }
+                catch (KeyNotFoundException){
+                    throw new System.InvalidOperationException(String.Format("Unhandled opcode {0,2:X2}",DataPins));
+                }
                 SYNC = false;
                 _opcycle = 0;
             }
+            addressing = IR.AddressingMode;
             RW=true;
-            switch(IR) {
-                // LDA
-                case 0xA5:
-                    _LDA(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0xB5:
-                    _LDA(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0xA9:
-                    _LDA(addressingModes.IMMEDIATE,_opcycle);
-                    break;
-                case 0xAD:
-                    _LDA(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0xBD:
-                    _LDA(addressingModes.ABSOLUTEX,_opcycle);
-                    break;
-                case 0xB9:
-                    _LDA(addressingModes.ABSOLUTEY,_opcycle);
-                    break;
-                case 0xA1:
-                    _LDA(addressingModes.INDEXEDINDIRECT,_opcycle);
-                    break;
-                case 0xB1:
-                    _LDA(addressingModes.INDIRECTINDEXED,_opcycle);
-                    break;
-                // LDX
-                case 0xA6:
-                    _LDX(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0xB6:
-                    _LDX(addressingModes.ZEROPAGEY,_opcycle);
-                    break;
-                case 0xA2:
-                    _LDX(addressingModes.IMMEDIATE,_opcycle);
-                    break;
-                case 0xAE:
-                    _LDX(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0xBE:
-                    _LDX(addressingModes.ABSOLUTEY,_opcycle);
-                    break;
+            switch(addressing) {
+                case addressingModes.IMPLIED : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
 
-                // LDY
-                case 0xA4:
-                    _LDY(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0xB4:
-                    _LDY(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0xA0:
-                    _LDY(addressingModes.IMMEDIATE,_opcycle);
-                    break;
-                case 0xAC:
-                    _LDY(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0xBC:
-                    _LDY(addressingModes.ABSOLUTEX,_opcycle);
-                    break;
+                        case 1: {
+                            IR.Execute(this);
+                            break;
+                        }
 
-                case 0x20:
-                    _JSR(addressingModes.ABSOLUTE,_opcycle);
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0x4C:
-                    _JMP(addressingModes.ABSOLUTE,_opcycle);
+                }
+                case addressingModes.IMMEDIATE:
+                    switch(_opcycle) {
+                        case 0: {            
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+                        case 1: {
+                            PC++;
+                            IR.Execute(this);
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0xE8:
-                    _INX(addressingModes.IMPLIED,_opcycle);
-                    break;
-                case 0xC8:
-                    _INY(addressingModes.IMPLIED,_opcycle);
-                    break;
-                case 0x88:
-                    _DEY(addressingModes.IMPLIED,_opcycle);
-                    break;
-                case 0xE6:
-                    _INC(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0xF6:
-                    _INC(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0xEE:
-                    _INC(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0xFE:
-                    _INC(addressingModes.ABSOLUTEX,_opcycle);
-                    break;
-                case 0xC6:
-                    _DEC(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0xD6:
-                    _DEC(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0xCE:
-                    _DEC(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0xDE:
-                    _DEC(addressingModes.ABSOLUTEX,_opcycle);
-                    break;
-                case 0xEA:
-                    _NOP(addressingModes.IMPLIED,_opcycle);
-                    break;
+                case addressingModes.ZEROPAGE_R : {
+                  switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
 
-                // STA
-                case 0x85:
-                    _STA(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0x95:
-                    _STA(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0x8D:
-                    _STA(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0x9D:
-                    _STA(addressingModes.ABSOLUTEX,_opcycle);
-                    break;
-                case 0x99:
-                    _STA(addressingModes.ABSOLUTEY,_opcycle);
-                    break;
-                case 0x81:
-                    _STA(addressingModes.INDEXEDINDIRECT,_opcycle);
-                    break;
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
 
-                // STX
-                case 0x86:
-                    _STX(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0x96:
-                    _STX(addressingModes.ZEROPAGEY,_opcycle);
-                    break;
-                case 0x8E:
-                    _STX(addressingModes.ABSOLUTE,_opcycle);
-                    break;
+                        case 2: {
+                            IR.Execute(this);
+                            break;
+                        }
 
-                // STY
-                case 0x84:
-                    _STY(addressingModes.ZEROPAGE,_opcycle);
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0x94:
-                    _STY(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0x8C:
-                    _STY(addressingModes.ABSOLUTE,_opcycle);
-                    break;
+                }
+                case addressingModes.ZEROPAGE_W : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
 
-                case 0x38:
-                    _SEC(addressingModes.IMPLIED,_opcycle);
-                    break;
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            IR.Execute(this);
+                            break;
+                        }
 
-                case 0xF8:
-                    _SED(addressingModes.IMPLIED,_opcycle);
-                    break;
+                        case 2: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
 
-                case 0x78:
-                    _SEI(addressingModes.IMPLIED,_opcycle);
+                        default: {
+                            break;
+                        }
+                    }
                     break;
+                }
+                case addressingModes.ZEROPAGEX_R : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
 
-                case 0x18:
-                    _CLC(addressingModes.IMPLIED,_opcycle);
-                    break;
+                        case 1: {
+                            PC++;
+                            AddrPins = AddrPins;
+                            break;
+                        }
 
-                case 0xD8:
-                    _CLD(addressingModes.IMPLIED,_opcycle);
-                    break;
+                        case 2: {
+                            AddrPins = ( DataPins+X )  & 0x00FF;
+                            break;
+                        }
 
-                case 0x58:
-                    _CLI(addressingModes.IMPLIED,_opcycle);
-                    break;
+                        case 3: {
+                            IR.Execute(this);
+                            break;
+                        }
 
-                case 0xB8:
-                    _CLV(addressingModes.IMPLIED,_opcycle);
+                        default: {
+                            break;
+                        }
+                    }
                     break;
+                }
+                case addressingModes.ZEROPAGEX_W : {
+                  switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
 
-                case 0xCA:
-                    _DEX(addressingModes.IMPLIED,_opcycle);
-                    break;
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            AD = AddrPins;
+                            break;
+                        }
 
-                case 0x48:
-                    _PHA(addressingModes.IMPLIED,_opcycle);
-                    break;
-                case 0x08:
-                    _PHP(addressingModes.IMPLIED,_opcycle);
-                    break;
-                case 0x68:
-                    _PLA(addressingModes.IMPLIED,_opcycle);
-                    break;
-                case 0x28:
-                    _PLP(addressingModes.IMPLIED,_opcycle);
-                    break;
+                        case 2: {
+                            AddrPins = ( AD+X )  & 0x00FF;
+                            IR.Execute(this);
+                            break;
+                        }
 
-                case 0x25:
-                    _AND(addressingModes.ZEROPAGE,_opcycle);
-                    break;
-                case 0x35:
-                    _AND(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0x29:
-                    _AND(addressingModes.IMMEDIATE,_opcycle);
-                    break;
-                case 0x2D:
-                    _AND(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0x3D:
-                    _AND(addressingModes.ABSOLUTEX,_opcycle);
-                    break;
-                case 0x39:
-                    _AND(addressingModes.ABSOLUTEY,_opcycle);
-                    break;
-                case 0x21:
-                    _AND(addressingModes.INDEXEDINDIRECT,_opcycle);
-                    break;
-                case 0x31:
-                    _AND(addressingModes.INDIRECTINDEXED,_opcycle);
-                    break;
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
 
-                case 0x05:
-                    _ORA(addressingModes.ZEROPAGE,_opcycle);
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0x15:
-                    _ORA(addressingModes.ZEROPAGEX,_opcycle);
-                    break;
-                case 0x09:
-                    _ORA(addressingModes.IMMEDIATE,_opcycle);
-                    break;
-                case 0x0D:
-                    _ORA(addressingModes.ABSOLUTE,_opcycle);
-                    break;
-                case 0x1D:
-                    _ORA(addressingModes.ABSOLUTEX,_opcycle);
-                    break;
-                case 0x19:
-                    _ORA(addressingModes.ABSOLUTEY,_opcycle);
-                    break;
-                case 0x01:
-                    _ORA(addressingModes.INDEXEDINDIRECT,_opcycle);
-                    break;
-                case 0x11:
-                    _ORA(addressingModes.INDIRECTINDEXED,_opcycle);
-                    break;
+                }
+                case addressingModes.ZEROPAGEY_R : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
 
-                case 0x45:
-                    _EOR(addressingModes.ZEROPAGE,_opcycle);
+                        case 1: {
+                            PC++;
+                            AddrPins = AddrPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = ( DataPins+Y )  & 0x00FF;
+                            break;
+                        }
+
+                        case 3: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0x55:
-                    _EOR(addressingModes.ZEROPAGEX,_opcycle);
+                }
+                case addressingModes.ZEROPAGEY_W : {
+                  switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            AD = AddrPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = ( AD+Y )  & 0x00FF;
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0x49:
-                    _EOR(addressingModes.IMMEDIATE,_opcycle);
+                }
+                case addressingModes.ZEROPAGE_RMW: {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 3: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 4: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
                     break;
-                case 0x4D:
-                    _EOR(addressingModes.ABSOLUTE,_opcycle);
+                }
+                case addressingModes.ZEROPAGEX_RMW: {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = (AddrPins + X) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
                     break;
-                case 0x5D:
-                    _EOR(addressingModes.ABSOLUTEX,_opcycle);
+                }
+                case addressingModes.ZEROPAGEY_RMW: {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins = (AddrPins + Y) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
                     break;
-                case 0x59:
-                    _EOR(addressingModes.ABSOLUTEY,_opcycle);
+                }
+                case addressingModes.ABSOLUTE_R : {
+                    switch(_opcycle) {
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 3: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0x41:
-                    _EOR(addressingModes.INDEXEDINDIRECT,_opcycle);
+                }
+                case addressingModes.ABSOLUTE_W : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
                     break;
-                case 0x51:
-                    _EOR(addressingModes.INDIRECTINDEXED,_opcycle);
+                }
+                case addressingModes.ABSOLUTE_RMW: {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 3: {
+                            DataPins = DataPins;
+                            RW = false;
+                            break;
+                        }
+
+                        case 4: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
                     break;
+                }
+                case addressingModes.ABSOLUTEX_R : {
+                    switch(_opcycle) {
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + X) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins >= AD ) {
+                                IR.Execute(this);
+                            } else {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            break;
+                        }
+
+                        case 4: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTEX_W : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + X) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins < AD ) {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 4: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTEX_RMW: {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins = DataPins <<8 | (AD+X) & 0xFF;
+                            AD =  DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins < AD) {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            break;
+                        }
+
+                        case 4: {
+                            RW = false;
+                            break;
+                        }
+
+                        case 5: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 6: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }                    
+                    break;
+                }
+                case addressingModes.ABSOLUTEY_R : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + Y) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins >= AD ) {
+                                IR.Execute(this);
+                            } else {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            break;
+                        }
+
+                        case 4: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.ABSOLUTEY_W : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = PC;
+                            AD = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            PC++;
+                            AddrPins =  DataPins <<8 | (AD + Y) &0xFF;
+                            AD = DataPins <<8 | AD ;
+                            break;
+                        }
+
+                        case 3: {
+                            if ( AddrPins < AD ) {
+                                AddrPins = AddrPins + 0x0100;
+                            }
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 4: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.INDEXEDINDIRECT_R : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins =  ( DataPins + X) &0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AD = DataPins;
+                            AddrPins =  ( AddrPins + 1) &0xFF;
+                            break;
+                        }
+
+                        case 4: {
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            break;
+                        }
+
+                        case 5: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.INDIRECTINDEXED_R : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+                        case 2: {
+                            AD = DataPins;
+                            AddrPins = (AddrPins+1) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins =  DataPins <<8 | (AD + Y) & 0xFF;
+                            AD = DataPins << 8 | AD;
+                            break;
+                        }
+
+                        case 4: {
+                            if ( AddrPins >= AD) {
+                                IR.Execute(this);
+                            } else {
+                                AddrPins += 0x0100;
+                            }
+
+                            break;
+                        }
+
+                        case 5: {
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case addressingModes.INDEXEDINDIRECT_W : {
+                    switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+
+                        case 2: {
+                            AddrPins =  ( DataPins + X) &0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AD = DataPins;
+                            AddrPins =  ( AddrPins + 1) &0xFF;
+                            break;
+                        }
+
+                        case 4: {
+                            AD = DataPins <<8 | AD;
+                            AddrPins = AD;
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                }
  
+                case addressingModes.INDIRECTINDEXED_W : {
+                  switch(_opcycle) {
+                    
+                        case 0: {
+                            PC++;
+                            AddrPins = PC;
+                            break;
+                        }
+
+                        case 1: {
+                            PC++;
+                            AddrPins = DataPins;
+                            break;
+                        }
+                        case 2: {
+                            AD = DataPins;
+                            AddrPins = (AddrPins+1) & 0xFF;
+                            break;
+                        }
+
+                        case 3: {
+                            AddrPins =  DataPins <<8 | (AD + Y) & 0xFF;
+                            AD = DataPins << 8 | AD;
+                            break;
+                        }
+
+                        case 4: {
+                            if ( AddrPins < AD) {
+                                AddrPins = (AddrPins + 0x0100) & 0xFFFF;
+                            }
+                            IR.Execute(this);
+                            break;
+                        }
+
+                        case 5: {
+                            AddrPins = PC;
+                            SYNC = true;
+                            break;
+                        }
+
+                        default: {
+                            break;
+                        }
+                    }
+                    break;
+                } 
  
- 
-                default:
-                    Console.WriteLine($"Unhandled opcode {IR}");
-                    throw new System.InvalidOperationException(String.Format("Unhandled opcode {0,2:X2}",IR));
+               default: {
+                    throw new System.InvalidOperationException($"Unhandled addressing mode {addressing.ToString()}");
+                }
             }
-
-            _opcycle++;
-
+             _opcycle++;
         }
 
-
-
+        /*
 
         private void _LDA(addressingModes addressing, uint opcycle) {
             switch(addressing) {
@@ -1922,6 +2673,7 @@ namespace C6502
             }
         }
 
+        */
         /*
         INX  Increment Index X by One
         bub
@@ -1932,6 +2684,8 @@ namespace C6502
         --------------------------------------------
         implied       INX           E8    1     2
         */
+
+        /*
         private void _INX(addressingModes addressing , uint opcycle) {
             switch(opcycle) {
                 case 0: {
@@ -3485,6 +4239,6 @@ namespace C6502
                 }
             }
         }
-
+        */
     }
 }
