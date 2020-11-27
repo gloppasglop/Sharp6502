@@ -18,7 +18,7 @@ namespace C6502
                 cpu.Y,
                 cpu.S,
                 Convert.ToString(cpu.P,2).PadLeft(8,'0'),
-                cpu.IR
+                cpu.IR.Opcode
                 );
         }
         
