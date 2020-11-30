@@ -5,24 +5,21 @@ using C6502;
 namespace C6502.Tests
 {
 
-    public class ADC_IMMEDIATE
+    public class SBC_IMMEDIATE
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x69;
+        private uint opcode = 0xE9;
         private int cycles = 2;
         private int bytes = 2;
 
 
+        
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -37,7 +34,8 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            uint result = ( A - value) & 0xFF;
+            Assert.Equal(result,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -48,15 +46,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal( result & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -70,7 +68,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -81,13 +79,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xB0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -101,7 +99,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -112,13 +110,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -132,7 +130,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -143,7 +141,7 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
@@ -151,24 +149,20 @@ namespace C6502.Tests
  
     }
 
-    public class ADC_ZEROPAGE
+    public class SBC_ZEROPAGE
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x65;
+        private uint opcode = 0xE5;
         private int cycles = 3;
         private int bytes = 2;
 
 
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -185,7 +179,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -196,15 +190,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -220,7 +214,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -231,13 +225,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xB0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -253,7 +247,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -264,13 +258,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -286,7 +280,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -297,30 +291,26 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
     }
 
-    public class ADC_ZEROPAGEX
+    public class SBC_ZEROPAGEX
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x75;
+        private uint opcode = 0xF5;
         private int cycles = 4;
         private int bytes = 2;
 
 
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -339,7 +329,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -350,15 +340,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -376,7 +366,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -387,13 +377,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xB0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -411,7 +401,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
@@ -423,13 +413,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -447,7 +437,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -458,13 +448,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
 
         [Fact]
-        public void ADC_IndexWrapShouldWork()
+        public void SBC_IndexWrapShouldWork()
         {
             testComputer.MemoryReset();
             
@@ -488,30 +478,26 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
     }
 
-    public class ADC_ABSOLUTE
+    public class SBC_ABSOLUTE
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x6D;
+        private uint opcode = 0xED;
         private int cycles = 4;
         private int bytes = 3;
 
 
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -530,7 +516,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -541,15 +527,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -567,7 +553,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -578,13 +564,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xb0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -601,7 +587,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -612,13 +598,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -635,7 +621,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -646,30 +632,26 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
     }
 
-    public class ADC_ABSOLUTEX
+    public class SBC_ABSOLUTEX
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x7D;
+        private uint opcode = 0xFD;
         private int cycles = 4;
         private int bytes = 3;
 
 
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -690,7 +672,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -701,15 +683,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -729,7 +711,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -740,13 +722,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xb0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -766,7 +748,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -777,13 +759,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -803,7 +785,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -814,14 +796,14 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_CrossPageBoundaryShouldAddACycle(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_CrossPageBoundaryShouldAddACycle(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -841,7 +823,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles+1);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -852,31 +834,27 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
  
     }
 
-    public class ADC_ABSOLUTEY
+    public class SBC_ABSOLUTEY
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x79;
+        private uint opcode = 0xF9;
         private int cycles = 4;
         private int bytes = 3;
 
 
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -897,7 +875,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -908,15 +886,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -936,7 +914,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -947,13 +925,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xB0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -973,7 +951,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -984,13 +962,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -1010,7 +988,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1021,14 +999,14 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_CrossPageBoundaryShouldAddACycle(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_CrossPageBoundaryShouldAddACycle(uint A, uint value)
         {
             testComputer.MemoryReset();
             
@@ -1048,7 +1026,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles+1);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1059,31 +1037,27 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
  
     }
 
-    public class ADC_INDEXEDINDIRECT
+    public class SBC_INDEXEDINDIRECT
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x61;
+        private uint opcode = 0xE1;
         private int cycles = 6;
         private int bytes = 2;
 
 
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -1108,7 +1082,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value)&0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1119,15 +1093,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1152,7 +1126,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1163,13 +1137,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xB0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1194,7 +1168,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1205,13 +1179,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1236,7 +1210,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1247,15 +1221,15 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_CrossPageBoundaryShouldWork(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_CrossPageBoundaryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1278,9 +1252,9 @@ namespace C6502.Tests
 
             var cpuCopy = testComputer.Clone();
 
-            int tick = testComputer.Execute(cycles+1);
+            int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1291,31 +1265,27 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
 
     }
 
-    public class ADC_INDIRECTINDEXED
+    public class SBC_INDIRECTINDEXED
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0x71;
+        private uint opcode = 0xF1;
         private int cycles = 5;
         private int bytes = 2;
 
 
         [Theory]
-        [InlineData(0x32,0x32)]
-        [InlineData(0x0,0x32)]
-        [InlineData(0x32,0x0)]
-        [InlineData(0x32,0x83)]
-        [InlineData(0x83,0x32)]
-        [InlineData(0x83,0x0)]
-        [InlineData(0x0,0x83)]
-        public void ADC_WithoutCarryShouldWork(uint A,uint value)
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
@@ -1338,7 +1308,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A+value,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1349,15 +1319,15 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x32,0xD0)]
-        [InlineData(0xd0,0x32)]
-        [InlineData(0xd0,0xd0)]
-        public void ADC_ShouldSetCarry(uint A, uint value)
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1380,7 +1350,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1391,13 +1361,13 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0x50,0x50)]
-        public void ADC_OverflowWithoutCarryShouldWork(uint A, uint value)
+        [InlineData(0x50,0xb0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1420,7 +1390,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1431,13 +1401,13 @@ namespace C6502.Tests
             // Carry flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
         [Theory]
-        [InlineData(0xd0,0x90)]
-        public void ADC_OverflowWithCarryShouldWork(uint A, uint value)
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1460,7 +1430,7 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1471,11 +1441,15 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
-        public void ADC_CrossPageBoundaryShouldAddACycle(uint A, uint value)
+        [Theory]
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_CrossPageBoundaryShouldAddACycle(uint A, uint value)
         {
             testComputer.MemoryReset();
 
@@ -1496,9 +1470,9 @@ namespace C6502.Tests
 
             var cpuCopy = testComputer.Clone();
 
-            int tick = testComputer.Execute(cycles);
+            int tick = testComputer.Execute(cycles+1);
 
-            Assert.Equal((A+value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
@@ -1509,31 +1483,33 @@ namespace C6502.Tests
             // Carry flag should be true
             Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
             // Negative flag should be correct
-            Assert.Equal((A+value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
-            Assert.Equal(cpuCopy.PC+bytes+1,testComputer.cpu.PC);
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
 
     }
 
 
-    public class ADC_INDIRECTINDEXEDT
+    public class SBC_INDIRECTINDEXEDT
     {
 
         private Computer testComputer = new Computer();
-        private uint opcode = 0xB1;
+        private uint opcode = 0xF1;
         private int cycles = 5;
         private int bytes = 2;
 
 
-        [Fact]
-        public void ADC_ShouldWork()
+        [Theory]
+        [InlineData(0x50,0xF0)]
+        [InlineData(0x50,0x70)]
+        [InlineData(0xD0,0xF0)]
+        public void SBC_WithoutCarryShouldWork(uint A,uint value)
         {
             testComputer.MemoryReset();
             
-            // ADC (#0xAA),Y
+            // SBC (#0xAA),Y
             uint pointer = 0xAA;
-            uint A = 0x32;
             uint Y = 0x0F;
             uint addr = 0xBEE0;
 
@@ -1543,31 +1519,42 @@ namespace C6502.Tests
             testComputer.mem.Write(pointer,addr & 0x00FF);
             testComputer.mem.Write(pointer+1,addr >> 8);       
 
-            testComputer.mem.Write(addr+Y,A);
+            testComputer.mem.Write(addr+Y,value);
 
             testComputer.CPUReset();
             testComputer.cpu.Y = Y;
+            testComputer.cpu.A = A;
 
             var cpuCopy = testComputer.Clone();
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
-            Assert.Equal(cpuCopy.P,testComputer.cpu.P);
+            Assert.Equal(cpuCopy.S,testComputer.cpu.S);
+            // Zero flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.Z);
+            // Overflow flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.V);
+            // Carry flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
+            // Negative flag should be correct
+            Assert.Equal( (A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
-        [Fact]
-        public void ADC_ZeroShouldSetZFlag()
+        [Theory]
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_ShouldSetCarry(uint A, uint value)
         {
             testComputer.MemoryReset();
 
-             // ADC (#0xAA),Y
+             // SBC (#0xAA),Y
             uint pointer = 0xAA;
-            uint A = 0x00;
             uint Y = 0x0F;
             uint addr = 0xBEE0;
 
@@ -1577,34 +1564,41 @@ namespace C6502.Tests
             testComputer.mem.Write(pointer,addr & 0x00FF);
             testComputer.mem.Write(pointer+1,addr >> 8);       
 
-            testComputer.mem.Write(addr+Y,A);
+            testComputer.mem.Write(addr+Y,value);
 
             testComputer.CPUReset();
+            testComputer.cpu.A = A;
             testComputer.cpu.Y = Y;
 
             var cpuCopy = testComputer.Clone();
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
-            // Zero flag should be true
-            Assert.Equal((uint) StatusFlagsMask.Z, testComputer.cpu.P & (uint) StatusFlagsMask.Z);
-            // Negativeflag should be false
-            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal(cpuCopy.S,testComputer.cpu.S);
+            // Zero flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.Z);
+            // Overflow flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.V);
+            // Carry flag should be true
+            Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
+            // Negative flag should be correct
+            Assert.Equal( (A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
+
         }
 
-        [Fact]
-        public void ADC_NegativeShouldSetNFlag()
+        [Theory]
+        [InlineData(0x50,0xB0)]
+        public void SBC_OverflowWithoutCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
 
-              // ADC (#0xAA),Y
+              // SBC (#0xAA),Y
             uint pointer = 0xAA;
-            uint A = 0x84;
             uint Y = 0x0F;
             uint addr = 0xBEE0;
 
@@ -1614,34 +1608,84 @@ namespace C6502.Tests
             testComputer.mem.Write(pointer,addr & 0x00FF);
             testComputer.mem.Write(pointer+1,addr >> 8);       
 
-            testComputer.mem.Write(addr+Y,A);
+            testComputer.mem.Write(addr+Y,value);
 
             testComputer.CPUReset();
+            testComputer.cpu.A = A;
             testComputer.cpu.Y = Y;
 
             var cpuCopy = testComputer.Clone();
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(A,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
             // Zero flag should be false
             Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.Z);
-            // Negativeflag should be true
-            Assert.Equal((uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            // Overflow flag should betrue 
+            Assert.Equal((uint) StatusFlagsMask.V, testComputer.cpu.P & (uint) StatusFlagsMask.V);
+            // Carry flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.C);
+            // Negative flag should be correct
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
 
-        [Fact]
-        public void ADC_PageBoundryCrossShouldAddACycle()
+        [Theory]
+        [InlineData(0xd0,0x70)]
+        public void SBC_OverflowWithCarryShouldWork(uint A, uint value)
         {
             testComputer.MemoryReset();
 
-               // ADC (#0xAA),Y
+              // SBC (#0xAA),Y
             uint pointer = 0xAA;
-            uint A = 0x44;
+            uint Y = 0x0F;
+            uint addr = 0xBEE0;
+
+            testComputer.mem.Write(0x0000,opcode);
+            testComputer.mem.Write(0x0001,pointer);
+
+            testComputer.mem.Write(pointer,addr & 0x00FF);
+            testComputer.mem.Write(pointer+1,addr >> 8);       
+
+            testComputer.mem.Write(addr+Y,value);
+
+            testComputer.CPUReset();
+            testComputer.cpu.A = A;
+            testComputer.cpu.Y = Y;
+
+            var cpuCopy = testComputer.Clone();
+
+            int tick = testComputer.Execute(cycles);
+
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
+            Assert.Equal(cpuCopy.X,testComputer.cpu.X);
+            Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
+            Assert.Equal(cpuCopy.S,testComputer.cpu.S);
+            // Zero flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.Z);
+            // Overflow flag should betrue 
+            Assert.Equal((uint) StatusFlagsMask.V, testComputer.cpu.P & (uint) StatusFlagsMask.V);
+            // Carry flag should be true
+            Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
+            // Negative flag should be correct
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
+            Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
+
+        }
+
+        [Theory]
+        [InlineData(0x50,0x30)]
+        [InlineData(0xD0,0xB0)]
+        [InlineData(0xD0,0x30)]
+        public void SBC_PageBoundryCrossShouldAddACycle(uint A, uint value)
+        {
+            testComputer.MemoryReset();
+
+               // SBC (#0xAA),Y
+            uint pointer = 0xAA;
             uint Y = 0xAF;
             uint addr = 0xBEE0;
 
@@ -1651,21 +1695,30 @@ namespace C6502.Tests
             testComputer.mem.Write(pointer,addr & 0x00FF);
             testComputer.mem.Write(pointer+1,addr >> 8);       
 
-            testComputer.mem.Write(addr+Y,A);
+            testComputer.mem.Write(addr+Y,value);
 
             testComputer.CPUReset();
+            testComputer.cpu.A = A;
             testComputer.cpu.Y = Y;
 
             var cpuCopy = testComputer.Clone();
 
             int tick = testComputer.Execute(cycles+1);
 
-            Assert.Equal(A,testComputer.cpu.A);
+            Assert.Equal((A-value) & 0xFF,testComputer.cpu.A);
             Assert.Equal(cpuCopy.X,testComputer.cpu.X);
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
-            Assert.Equal(cpuCopy.P,testComputer.cpu.P);
+            // Zero flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.Z);
+            // Overflow flag should be false
+            Assert.Equal((uint) 0, testComputer.cpu.P & (uint) StatusFlagsMask.V);
+            // Carry flag should be true
+            Assert.Equal((uint) StatusFlagsMask.C, testComputer.cpu.P & (uint) StatusFlagsMask.C);
+            // Negative flag should be correct
+            Assert.Equal((A-value) & (uint) StatusFlagsMask.N, testComputer.cpu.P & (uint) StatusFlagsMask.N);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
+
         }
 
     }

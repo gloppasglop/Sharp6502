@@ -47,6 +47,156 @@ namespace C6502
         }
     }
 
+    public class PHP : Instruction { }
+
+    public class PLP : Instruction { }
+
+    public class PHA : Instruction { }
+
+    public class PLA : Instruction { }
+
+    public class RTS : Instruction { }
+
+    public class RTI : Instruction { }
+
+    public class JSR : Instruction { }
+   
+    public class BCC : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.C ) == 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
+    public class BCS : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.C ) != 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
+    public class BVC : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.V ) == 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
+    public class BVS : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.V ) != 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
+    public class BNE : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.Z ) == 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
+    public class BEQ : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.Z ) != 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
+    public class BPL : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.N ) == 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
+    public class BMI : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            if ((cpu.P & (uint) StatusFlagsMask.N ) != 0) {
+                if ( ( cpu.DataPins >> 7 ) == 0 ) {
+                    cpu.AD = cpu.PC+cpu.DataPins;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins) & 0xFF);
+                } else {
+                    cpu.AD = cpu.PC+cpu.DataPins-0x100;
+                    cpu.PC = (cpu.PC & 0xFF00 ) | ((cpu.PC + cpu.DataPins-0x100) & 0xFF);
+                }
+            } else {
+                cpu.SYNC = true;
+            }
+            cpu.AddrPins =  cpu.PC;
+        }
+    }
     public class LDA : Instruction {
 
         public override void Execute(Cpu cpu) {
@@ -257,6 +407,137 @@ namespace C6502
             cpu.SYNC = true;
         }
     }
+
+    public class ASL : Instruction {
+
+        public override void Execute(Cpu cpu) {
+            if ( AddressingMode == addressingModes.ACCUMULATOR) {
+                uint tmp = (cpu.A << 1) & 0xFF;
+                if ( (cpu.A & (uint) StatusFlagsMask.N) != 0) {
+                    cpu.P |= (uint) StatusFlagsMask.C;
+                } else {
+                    cpu.P &= (uint) ~StatusFlagsMask.C;
+                }
+                cpu.A = tmp;
+                cpu.setNZ(cpu.A);
+                cpu.AddrPins = cpu.PC;
+                cpu.SYNC = true;
+                
+            } else {
+                uint tmp = (cpu.DataPins << 1) & 0xFF;
+                if ( (cpu.DataPins & (uint) StatusFlagsMask.N) != 0) {
+                    cpu.P |= (uint) StatusFlagsMask.C;
+                } else {
+                    cpu.P &= (uint) ~StatusFlagsMask.C;
+                }
+                cpu.DataPins = tmp;
+                cpu.setNZ(tmp);
+                cpu.RW = false;
+            }
+        }
+    }
+
+    public class LSR : Instruction {
+
+        public override void Execute(Cpu cpu) {
+            if ( AddressingMode == addressingModes.ACCUMULATOR) {
+                uint tmp = (cpu.A >> 1) & 0xFF;
+                if ( (cpu.A & 0x01) != 0) {
+                    cpu.P |= (uint) StatusFlagsMask.C;
+                } else {
+                    cpu.P &= (uint) ~StatusFlagsMask.C;
+                }
+                cpu.A = tmp;
+                cpu.setNZ(cpu.A);
+                cpu.AddrPins = cpu.PC;
+                cpu.SYNC = true;
+                
+            } else {
+                uint tmp = (cpu.DataPins >> 1) & 0xFF;
+                if ( (cpu.DataPins & 0x01) != 0) {
+                    cpu.P |= (uint) StatusFlagsMask.C;
+                } else {
+                    cpu.P &= (uint) ~StatusFlagsMask.C;
+                }
+                cpu.DataPins = tmp;
+                cpu.setNZ(tmp);
+                cpu.RW = false;
+            }
+        }
+    }
+
+    public class ROL : Instruction {
+
+        public override void Execute(Cpu cpu) {
+            if ( AddressingMode == addressingModes.ACCUMULATOR) {
+                uint tmp = ( (cpu.A << 1) & 0xFF )| (cpu.P & (uint) StatusFlagsMask.C);
+                if ( (cpu.A & 0x80) != 0) {
+                    cpu.P |= (uint) StatusFlagsMask.C;
+                } else {
+                    cpu.P &= (uint) ~StatusFlagsMask.C;
+                }
+                cpu.A = tmp;
+                cpu.setNZ(cpu.A);
+                cpu.AddrPins = cpu.PC;
+                cpu.SYNC = true;
+                
+            } else {
+                uint tmp = ( (cpu.DataPins << 1) & 0xFF )| (cpu.P & (uint) StatusFlagsMask.C);
+                if ( (cpu.DataPins & 0x80) != 0) {
+                    cpu.P |= (uint) StatusFlagsMask.C;
+                } else {
+                    cpu.P &= (uint) ~StatusFlagsMask.C;
+                }
+                cpu.DataPins = tmp;
+                cpu.setNZ(tmp);
+                cpu.RW = false;
+            }
+        }
+    }
+
+    public class ROR : Instruction {
+
+        public override void Execute(Cpu cpu) {
+            if ( AddressingMode == addressingModes.ACCUMULATOR) {
+                uint tmp = ( (cpu.A >> 1) & 0xFF )| ( (cpu.P & (uint) StatusFlagsMask.C) << 7);
+                cpu.P = (cpu.P & (uint) ~StatusFlagsMask.C ) | (cpu.A & 0x01);
+                cpu.A = tmp;
+                cpu.setNZ(cpu.A);
+                cpu.AddrPins = cpu.PC;
+                cpu.SYNC = true;
+                
+            } else {
+                uint tmp = ( (cpu.DataPins >> 1) & 0xFF )| ( (cpu.P & (uint) StatusFlagsMask.C) << 7);
+                cpu.P = (cpu.P & (uint) ~StatusFlagsMask.C ) | (cpu.DataPins & 0x01);
+                cpu.DataPins = tmp;
+                cpu.setNZ(tmp);
+                cpu.RW = false;
+            }
+        }
+    }
+
+
+    public class BIT : Instruction {
+
+        public override void Execute(Cpu cpu) {
+            uint tmp = cpu.A & cpu.DataPins;
+            cpu.setNZ(tmp);
+            // Set V flag to valud of bit 6
+            cpu.P |= ( tmp & (uint) StatusFlagsMask.V ) ;
+            cpu.AddrPins = cpu.PC;
+            cpu.SYNC = true;
+        }
+    }
+
+    public class JMP : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+                cpu.AD = cpu.DataPins <<8 | cpu.AD;
+                cpu.PC = cpu.AD;
+                cpu.AddrPins = cpu.AD;
+                cpu.SYNC = true; 
+        }
+    }
  
     public class EOR : Instruction {
 
@@ -302,11 +583,59 @@ namespace C6502
 
         }
     }
+
+     public class SBC : Instruction {
+        public override void Execute(Cpu cpu)
+        {
+            // TODO: Implemend Decimal Mode
+            // Do same as ADC but with ~cpu.DataPins
+            uint sum = (0xFF-cpu.DataPins) + cpu.A - ~(cpu.P & (uint) StatusFlagsMask.C);
+            // If M and A are same sign but sum is different sign, set the overflowe
+            if ( ((~(( 0xFF -cpu.DataPins) ^ cpu.A) & 0xFF ) & (sum ^ cpu.A) & 0x80 ) == 0 ) {
+                cpu.P &= (uint) ~StatusFlagsMask.V;
+            } else {
+                cpu.P |= (uint) StatusFlagsMask.V;
+            }
+            cpu.A = sum & 0xFF;
+            cpu.setNZ(cpu.A);
+            //Set Carry
+            cpu.P = ( cpu.P & (uint) ~StatusFlagsMask.C) | ( sum >> 8 );
+
+        }
+    }
     public class CMP : Instruction {
         public override void Execute(Cpu cpu) {
             uint diff = (cpu.A - cpu.DataPins) & 0xFF;
             cpu.setNZ(diff);
             if ( cpu.A >= cpu.DataPins) {
+                cpu.P |= (uint) StatusFlagsMask.C;
+            } else {
+                cpu.P &= (uint) ~StatusFlagsMask.C;
+            }
+            cpu.AddrPins = cpu.PC;
+            cpu.SYNC = true;
+        }
+    }
+
+    public class CPY : Instruction {
+        public override void Execute(Cpu cpu) {
+            uint diff = (cpu.Y - cpu.DataPins) & 0xFF;
+            cpu.setNZ(diff);
+            if ( cpu.Y >= cpu.DataPins) {
+                cpu.P |= (uint) StatusFlagsMask.C;
+            } else {
+                cpu.P &= (uint) ~StatusFlagsMask.C;
+            }
+            cpu.AddrPins = cpu.PC;
+            cpu.SYNC = true;
+        }
+    }
+
+   public class CPX : Instruction {
+        public override void Execute(Cpu cpu) {
+            uint diff = (cpu.X - cpu.DataPins) & 0xFF;
+            cpu.setNZ(diff);
+            if ( cpu.X >= cpu.DataPins) {
                 cpu.P |= (uint) StatusFlagsMask.C;
             } else {
                 cpu.P &= (uint) ~StatusFlagsMask.C;
