@@ -14,3 +14,9 @@ Wanted to try that after seeing  [Dave Poo](https://www.youtube.com/c/DavePoo) Y
 * https://github.com/eteran/pretendo/blob/master/doc/cpu/6502.txt#L945
 * https://floooh.github.io/tiny8bit/c64-ui.html
 
+http://www.6502.org/tutorials/interrupts.html
+
+
+TODO:
+- INDEXEDINDERECT tests wre not sufficient
+- BIT tests do not check V flag correctly

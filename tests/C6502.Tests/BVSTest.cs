@@ -101,7 +101,7 @@ namespace C6502.Tests
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
             Assert.Equal(cpuCopy.P,testComputer.cpu.P);
-            Assert.Equal((uint) 0x111C,testComputer.cpu.PC);
+            Assert.Equal((uint) 0x111B,testComputer.cpu.PC);
         }
 
  
@@ -162,7 +162,7 @@ namespace C6502.Tests
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             Assert.Equal(cpuCopy.S,testComputer.cpu.S);
             Assert.Equal(cpuCopy.P,testComputer.cpu.P);
-            Assert.Equal((uint) 0x0FB9,testComputer.cpu.PC);
+            Assert.Equal((uint) 0x0FB8,testComputer.cpu.PC);
         }
  
    }

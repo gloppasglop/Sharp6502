@@ -884,16 +884,14 @@ namespace C6502.Tests
             testComputer.MemoryReset();
             
             uint pointer = 0x40;
-            uint pointerValue = 0xA0;
             uint X = 0x0F;
             uint addr = 0xBEE0;
 
             testComputer.mem.Write(0x0000,opcode);
             testComputer.mem.Write(0x0001,pointer);
-            testComputer.mem.Write(pointer,pointerValue);
 
-            testComputer.mem.Write((pointerValue+X) & 0xFF,addr & 0x00FF);
-            testComputer.mem.Write((pointerValue+X+1) & 0xFF,addr >> 8);       
+            testComputer.mem.Write((pointer+X) & 0xFF,addr & 0x00FF);
+            testComputer.mem.Write((pointer+X+1) & 0xFF,addr >> 8);       
             testComputer.mem.Write(addr,value);
 
             testComputer.CPUReset();
@@ -930,16 +928,14 @@ namespace C6502.Tests
             testComputer.MemoryReset();
 
             uint pointer = 0x40;
-            uint pointerValue = 0xA0;
             uint X = 0x0F;
             uint addr = 0xBEE0;
 
             testComputer.mem.Write(0x0000,opcode);
             testComputer.mem.Write(0x0001,pointer);
-            testComputer.mem.Write(pointer,pointerValue);
 
-            testComputer.mem.Write((pointerValue+X) & 0xFF,addr & 0x00FF);
-            testComputer.mem.Write((pointerValue+X+1) & 0xFF,addr >> 8);       
+            testComputer.mem.Write((pointer+X) & 0xFF,addr & 0x00FF);
+            testComputer.mem.Write((pointer+X+1) & 0xFF,addr >> 8);       
             testComputer.mem.Write(addr,value);
 
             testComputer.CPUReset();
@@ -974,16 +970,14 @@ namespace C6502.Tests
             testComputer.MemoryReset();
 
             uint pointer = 0x40;
-            uint pointerValue = 0xA0;
             uint X = 0x0F;
             uint addr = 0xBEE0;
 
             testComputer.mem.Write(0x0000,opcode);
             testComputer.mem.Write(0x0001,pointer);
-            testComputer.mem.Write(pointer,pointerValue);
 
-            testComputer.mem.Write((pointerValue+X) & 0xFF,addr & 0x00FF);
-            testComputer.mem.Write((pointerValue+X+1) & 0xFF,addr >> 8);       
+            testComputer.mem.Write((pointer+X) & 0xFF,addr & 0x00FF);
+            testComputer.mem.Write((pointer+X+1) & 0xFF,addr >> 8);       
             testComputer.mem.Write(addr,value);
 
             testComputer.CPUReset();
@@ -1021,16 +1015,14 @@ namespace C6502.Tests
             testComputer.MemoryReset();
 
             uint pointer = 0x40;
-            uint pointerValue = 0xA0;
             uint X = 0xFF;
             uint addr = 0xBEE0;
 
             testComputer.mem.Write(0x0000,opcode);
             testComputer.mem.Write(0x0001,pointer);
-            testComputer.mem.Write(pointer,pointerValue);
 
-            testComputer.mem.Write((pointerValue+X) & 0xFF,addr & 0x00FF);
-            testComputer.mem.Write((pointerValue+X+1) & 0xFF,addr >> 8);       
+            testComputer.mem.Write((pointer+X) & 0xFF,addr & 0x00FF);
+            testComputer.mem.Write((pointer+X+1) & 0xFF,addr >> 8);       
             testComputer.mem.Write(addr,value);
 
             testComputer.CPUReset();

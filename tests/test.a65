@@ -1,0 +1,31 @@
+
+    code
+    org $8000
+    data
+    org $8100
+
+    code
+start:
+    lda #$20
+    lda #$85
+    lda $0F
+    lda #$00
+    lda $0D,x
+    lda #$00
+    lda $FF,x
+    
+    lda #$00
+    lda start
+
+    lda #$00
+    lda essai-2,x
+
+    lda #$00
+    lda essai-2,y
+    nop
+
+    data
+essai:
+    db 1,2,3,4
+
+

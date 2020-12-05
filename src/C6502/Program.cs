@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace C6502
@@ -7,7 +8,7 @@ namespace C6502
     {
 
         static void DumpState(ulong tick, Cpu cpu) {
-            Console.WriteLine("{0,20} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9}", 
+            Console.WriteLine("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9}", 
                 tick,
                 cpu.AddrPins, 
                 cpu.DataPins, 
@@ -18,7 +19,8 @@ namespace C6502
                 cpu.Y,
                 cpu.S,
                 Convert.ToString(cpu.P,2).PadLeft(8,'0'),
-                cpu.IR.Opcode
+                cpu.IR.Opcode,
+                cpu._opcycle
                 );
         }
         
@@ -56,19 +58,18 @@ namespace C6502
             mem.Write(offset++,0x60);
 
 
+            byte[] fileBytes = File.ReadAllBytes("../../tests/6502_functional_test.bin");
 
-            byte[] fileBytes = File.ReadAllBytes("test.bin");
-            offset = 0x8000;
+            //byte[] fileBytes = File.ReadAllBytes("../../tests/test.bin");
+            offset = 0x000A;
 
             foreach (uint data in fileBytes) {
                 mem.Write(offset++,data);
             }
 
-            cpu.PC = 0x8000;
+            cpu.PC = 0x0400;
             cpu.AddrPins = cpu.PC;
             cpu.DataPins = mem.Read(cpu.PC);
-            cpu.Y = 0x03;
-            cpu.X = 0x04;
             
             ulong tick = 0; 
 
@@ -85,8 +86,12 @@ namespace C6502
                 "s"
                 );
 
-            DumpState(tick,cpu);
-                 
+            //DumpState(tick,cpu);
+
+            uint previousPC= 0x1FFFF;
+            bool debug = false;
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
             while(true) {
                 cpu.Tick();
 
@@ -100,10 +105,23 @@ namespace C6502
                 }
 
                 tick++;
-                DumpState(tick,cpu);
-
+                if ( debug) { DumpState(tick,cpu); }
+                if ((cpu._opcycle == 1) && (previousPC == cpu.PC)) {
+                    Console.WriteLine("PC di not change");
+                }
+                if (cpu.PC == 0x3375) {
+                    break;
+                }
+                if (cpu.PC == 0x09c5) {
+                    debug = true;
+                }
+                previousPC = cpu.PC;
             }
-            
+            stopwatch.Stop();
+            Console.WriteLine("Total number of cycles: {0}", tick);
+            Console.WriteLine("Elapsed time: {0}", stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("Frequency: {0}", (long) tick/1000.0/stopwatch.ElapsedMilliseconds);
+
         }
    }
 }

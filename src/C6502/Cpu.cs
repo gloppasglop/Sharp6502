@@ -96,7 +96,7 @@ namespace C6502
         public bool PHY1 { get; set;}
         public bool PHY2 { get; set;}
 
-        private uint _opcycle;
+        public uint _opcycle;
         public Instruction IR { get; set;}
         private uint _tmp_stack;
 
@@ -114,6 +114,8 @@ namespace C6502
             A = 0xAA;
             X = 0x00;
             Y = 0x00;
+            // P = (uint) StatusFlagsMask.B | (uint) StatusFlagsMask.I;
+            P = (uint) StatusFlagsMask.B ;
 
         }
         private Dictionary<uint,Instruction> instructionSet;
@@ -369,14 +371,14 @@ namespace C6502
 
                         case 2: {
                             AddrPins = 0x100+_tmp_stack;
-                            DataPins = PC & 0xFF;
+                            DataPins = PC >> 8;
                             RW = false;
                             break;
                         }
 
                         case 3: {
                             _tmp_stack--;
-                            DataPins = PC >> 8;
+                            DataPins = PC & 0xFF;
                             AddrPins = 0x100+_tmp_stack;
                             RW = false;
 
@@ -417,9 +419,8 @@ namespace C6502
                             PC++;
                             AddrPins = 0x100+_tmp_stack;
                             DataPins = PC >> 8;
-                            P |= (uint) StatusFlagsMask.B;
                             _tmp_stack--;
-                            RW = true;
+                            RW = false;
                             break;
                         }
 
@@ -427,15 +428,18 @@ namespace C6502
                             AddrPins = 0x100+_tmp_stack;
                             DataPins = PC & 0xFF;
                             _tmp_stack--;
-                            RW = true;
+                            RW = false;
                             break;
                         }
 
                         case 3: {
                             AddrPins = 0x100+_tmp_stack;
+                            P |= (uint) StatusFlagsMask.B;
+                            P |= (uint) StatusFlagsMask.X;
+                            //P |= (uint) StatusFlagsMask.I;
                             DataPins = P;
                             _tmp_stack--;
-                            RW = true;
+                            RW = false;
                             break;
                         }
 
@@ -454,6 +458,7 @@ namespace C6502
                         case 6: {
                             AD = DataPins <<8 | AD;
                             PC = AD;
+                            AddrPins = PC;
                             SYNC = true;
                             break;
                         }
@@ -501,6 +506,7 @@ namespace C6502
                         case 5: {
                             AD = DataPins << 8 | AD;
                             PC = AD;
+                            AddrPins = PC;
                             SYNC = true;
                             break;
                         }
@@ -657,7 +663,7 @@ namespace C6502
                         }
                         case 3: {
                             AddrPins = PC;
-                            P = DataPins;
+                            P = DataPins | (uint) StatusFlagsMask.X | (uint) StatusFlagsMask.B;
                             SYNC = true;
                             break;
                         }
@@ -1372,7 +1378,7 @@ namespace C6502
                                 }
 
                                 case 2: {
-                                    AddrPins =  ( DataPins + X) &0xFF;
+                                    AddrPins =  ( AddrPins + X) &0xFF;
                                     break;
                                 }
 
@@ -1462,7 +1468,7 @@ namespace C6502
                                 }
 
                                 case 2: {
-                                    AddrPins =  ( DataPins + X) &0xFF;
+                                    AddrPins =  ( AddrPins + X) &0xFF;
                                     break;
                                 }
 
@@ -1554,7 +1560,6 @@ namespace C6502
 
                                 case 2: {
                                     if ( ( AddrPins >> 8) == (AD >> 8) ) {
-                                        //PC++;
                                         AddrPins = PC;
                                         SYNC = true;
                                     } else {
@@ -1565,7 +1570,7 @@ namespace C6502
                                 }
 
                                 case 3: {
-                                    PC++;
+                                    AddrPins = PC;
                                     SYNC = true;
                                     break;
                                 }

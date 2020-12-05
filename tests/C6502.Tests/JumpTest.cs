@@ -116,8 +116,8 @@ namespace C6502.Tests
             Assert.Equal(cpuCopy.Y,testComputer.cpu.Y);
             // Stack point should be decremented by 2
             Assert.Equal(cpuCopy.S-2,testComputer.cpu.S);
-            Assert.Equal((startAddr+2) & 0xFF, testComputer.mem.Read(0x100+cpuCopy.S));
-            Assert.Equal((startAddr+2) >> 8, testComputer.mem.Read(0x100+cpuCopy.S-1));
+            Assert.Equal((startAddr+2) & 0xFF, testComputer.mem.Read(0x100+cpuCopy.S-1));
+            Assert.Equal((startAddr+2) >> 8, testComputer.mem.Read(0x100+cpuCopy.S));
 
 
             Assert.Equal(cpuCopy.P,testComputer.cpu.P);
@@ -226,15 +226,19 @@ namespace C6502.Tests
             testComputer.MemoryReset();
             
             uint addr = 0xBEEF;
+            uint startAddr = 0xDEAD;
             uint S = 0xFF;
 
-            testComputer.mem.Write(0x0000,opcode);
+            testComputer.mem.Write(startAddr,opcode);
 
             testComputer.mem.Write(0xFFFE,addr & 0xFF);
             testComputer.mem.Write(0xFFFF,addr >>8);
 
             testComputer.CPUReset();
+            testComputer.cpu.PC = startAddr;
             testComputer.cpu.S = S;
+            testComputer.cpu.AddrPins = testComputer.cpu.PC;
+            testComputer.cpu.DataPins = testComputer.mem.Read(testComputer.cpu.PC);
 
             var cpuCopy = testComputer.Clone();
 
@@ -247,7 +251,15 @@ namespace C6502.Tests
             Assert.Equal(cpuCopy.S-3,testComputer.cpu.S);
             // B flag should be set
             Assert.Equal((uint) StatusFlagsMask.B,testComputer.cpu.P & (uint) StatusFlagsMask.B);
+            // Stack should contain
+            //    Processor State (with B and X flags set)
+            //    Adr Low
+            //    Addr High
+            Assert.Equal(cpuCopy.P |(uint) StatusFlagsMask.B | (uint) StatusFlagsMask.X,testComputer.mem.Read(0x100+S-2));
+            Assert.Equal((startAddr +2 ) & 0xFF,testComputer.mem.Read(0x100+S-1));
+            Assert.Equal((startAddr+2) >> 8,testComputer.mem.Read(0x100+S));
             Assert.Equal(addr,testComputer.cpu.PC);
+            Assert.Equal(addr,testComputer.cpu.AddrPins);
         }
     }
 }

@@ -522,8 +522,11 @@ namespace C6502
         public override void Execute(Cpu cpu) {
             uint tmp = cpu.A & cpu.DataPins;
             cpu.setNZ(tmp);
-            // Set V flag to valud of bit 6
-            cpu.P |= ( tmp & (uint) StatusFlagsMask.V ) ;
+            // Set V flag to valud of bit 6 of tested address
+            cpu.P = (cpu.P & (uint) ~StatusFlagsMask.V) | ( cpu.DataPins & (uint) StatusFlagsMask.V ) ;
+            // Set N flag to valud of bit 6 of tested address
+            cpu.P = (cpu.P & (uint) ~StatusFlagsMask.N ) | ( cpu.DataPins & (uint) StatusFlagsMask.N ) ;
+
             cpu.AddrPins = cpu.PC;
             cpu.SYNC = true;
         }
@@ -580,7 +583,9 @@ namespace C6502
             cpu.setNZ(cpu.A);
             //Set Carry
             cpu.P = ( cpu.P & (uint) ~StatusFlagsMask.C) | ( sum >> 8 );
-
+            cpu.AddrPins = cpu.PC;
+            cpu.SYNC = true;
+            
         }
     }
 
@@ -589,7 +594,7 @@ namespace C6502
         {
             // TODO: Implemend Decimal Mode
             // Do same as ADC but with ~cpu.DataPins
-            uint sum = (0xFF-cpu.DataPins) + cpu.A - ~(cpu.P & (uint) StatusFlagsMask.C);
+            uint sum = (0xFF-cpu.DataPins) + cpu.A + (cpu.P & (uint) StatusFlagsMask.C);
             // If M and A are same sign but sum is different sign, set the overflowe
             if ( ((~(( 0xFF -cpu.DataPins) ^ cpu.A) & 0xFF ) & (sum ^ cpu.A) & 0x80 ) == 0 ) {
                 cpu.P &= (uint) ~StatusFlagsMask.V;
@@ -600,6 +605,8 @@ namespace C6502
             cpu.setNZ(cpu.A);
             //Set Carry
             cpu.P = ( cpu.P & (uint) ~StatusFlagsMask.C) | ( sum >> 8 );
+            cpu.AddrPins = cpu.PC;
+            cpu.SYNC = true;
 
         }
     }

@@ -271,7 +271,8 @@ namespace C6502.Tests
 
             int tick = testComputer.Execute(cycles);
 
-            Assert.Equal(value,testComputer.cpu.P);
+            // Reading X and B flags set them high
+            Assert.Equal(value |(uint) StatusFlagsMask.X | (uint) StatusFlagsMask.B,testComputer.cpu.P);
             Assert.Equal(cpuCopy.PC+bytes,testComputer.cpu.PC);
         }
  
