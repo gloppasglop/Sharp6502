@@ -1,31 +1,35 @@
 
     code
     org $8000
-    data
-    org $8100
 
-    code
-start:
-    lda #$20
-    lda #$85
-    lda $0F
+start
     lda #$00
-    lda $0D,x
-    lda #$00
-    lda $FF,x
-    
-    lda #$00
-    lda start
-
-    lda #$00
-    lda essai-2,x
-
-    lda #$00
-    lda essai-2,y
+    nop
+    nop
     nop
 
-    data
-essai:
-    db 1,2,3,4
+nmi_vector
+    lda #$01
+    nop
+    nop
+    nop
+
+irq_vector
+    lda #$02
+    nop
+    nop
+    nop
+
+res_vector
+    lda #$03
+    nop
+    nop
+    nop
+
+    org $fffa
+    dw  nmi_vector
+    dw  res_vector
+    dw  irq_vector
+
 
 

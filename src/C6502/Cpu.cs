@@ -3,6 +3,11 @@ using System.Collections.Generic;
 
 namespace C6502
 {
+    public enum BrkFlagsMask : uint {
+        RESET = 1,
+        NMI = 2,
+        IRQ = 4
+    }
     public enum StatusFlagsMask : uint {
         C = 1, // Carry Flag
         Z = 2, // Zero Flag
@@ -100,22 +105,26 @@ namespace C6502
         public Instruction IR { get; set;}
         private uint _tmp_stack;
 
+        public uint BrkFlag { get; set;}
+
  
 
         private void Init() {
             SYNC = true;
             RW = true;
             RES = true;
-
+            BrkFlag = 0;
             AddrPins = 0x0000;
-            DataPins = 0xA9;
-            PC = 0x8000;
-            S = 0xFD;
-            A = 0xAA;
+            // DataPins = 0xA9;
+            // PC = 0x8000;
+            S = 0xFF;
+            A = 0x00;
             X = 0x00;
             Y = 0x00;
             // P = (uint) StatusFlagsMask.B | (uint) StatusFlagsMask.I;
-            P = (uint) StatusFlagsMask.B ;
+            //P = (uint) StatusFlagsMask.B ;
+
+            PHY2 = false;
 
         }
         private Dictionary<uint,Instruction> instructionSet;
@@ -339,6 +348,17 @@ namespace C6502
                 }
                 SYNC = false;
                 _opcycle = 0;
+                if (RES) {
+                    BrkFlag |= (uint) BrkFlagsMask.RESET;
+                }
+
+                // TODO NMI and IRQ
+
+                if (BrkFlag != 0 ) {
+                    IR = instructionSet[0x00];
+                    P &= (uint) ~StatusFlagsMask.B ;
+                    RES = false;
+                }
             }
             addressing = IR.AddressingMode;
             opcode = IR.Opcode;
@@ -420,7 +440,10 @@ namespace C6502
                             AddrPins = 0x100+_tmp_stack;
                             DataPins = PC >> 8;
                             _tmp_stack--;
-                            RW = false;
+                            // If reset do not write to stack
+                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) == 0) {
+                                RW = false;
+                            }
                             break;
                         }
 
@@ -428,30 +451,55 @@ namespace C6502
                             AddrPins = 0x100+_tmp_stack;
                             DataPins = PC & 0xFF;
                             _tmp_stack--;
-                            RW = false;
+                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) == 0) {
+                                RW = false;
+                            }
                             break;
                         }
 
                         case 3: {
                             AddrPins = 0x100+_tmp_stack;
-                            P |= (uint) StatusFlagsMask.B;
+                            // Set B status flag only for "normal" BRK
+                            // Clear it for NMI/IRQ/RESET
+                            if ( BrkFlag == 0) { 
+                                P |= (uint) StatusFlagsMask.B;
+                            } else {
+                                P &= (uint) ~StatusFlagsMask.B;
+                            }
                             P |= (uint) StatusFlagsMask.X;
                             //P |= (uint) StatusFlagsMask.I;
                             DataPins = P;
                             _tmp_stack--;
-                            RW = false;
+                            // Only write if not RESET
+                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) == 0) {
+                                RW = false;
+                            }
                             break;
                         }
 
                         case 4: {
                             S = _tmp_stack;
-                            AddrPins = 0xFFFE;
+                            if ( ( BrkFlag & (uint) BrkFlagsMask.RESET) != 0 ) {
+                                AddrPins = 0xFFFC;
+                            } else if (( BrkFlag & (uint) BrkFlagsMask.NMI) != 0) {
+                                AddrPins = 0xFFFA;
+                            } else {
+                                AddrPins = 0xFFFE;
+                            }
                             break;
                         }
 
                         case 5: {
                             AD = DataPins;
-                            AddrPins = 0xFFFF;
+                            if ( ( BrkFlag & (uint) BrkFlagsMask.RESET) != 0 ) {
+                                AddrPins = 0xFFFD;
+                            } else if (( BrkFlag & (uint) BrkFlagsMask.NMI) != 0) {
+                                AddrPins = 0xFFFB;
+                            } else {
+                                AddrPins = 0xFFFF;
+                            }
+                            // TODO: Check if correct cycle to clear BrkFlag
+                            BrkFlag = 0;
                             break;
                         }
 
