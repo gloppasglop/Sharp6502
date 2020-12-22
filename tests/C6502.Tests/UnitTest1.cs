@@ -11,8 +11,9 @@ namespace C6502.Tests
         public Memory mem;
 
         public Computer() {
-            cpu = new Cpu();
-            mem = new Memory();            
+            cpu = new Cpu(mem);
+            mem = new Memory();
+            mem.ConfigureBanks(0);         
         }
         public void CPUReset(){
 

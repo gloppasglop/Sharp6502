@@ -19,13 +19,25 @@ http://www.6502.org/tutorials/interrupts.html
 http://www.unusedino.de/ec64/technical/project64/mapping_c64.html
 
 
-http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 
 
 https://www.pagetable.com/c64ref/c64disasm/#D50
 
 https://dustlayer.com/c64-architecture/2013/4/13/ram-under-rom
 
-TODO:
+## VIC Stuff
+
+https://dustlayer.com/vic-ii/2013/4/25/vic-ii-for-beginners-beyond-the-screen-rasters-cycle
+
+http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+http://unusedino.de/ec64/technical/misc/vic656x/colors/
+https://codebase64.org/doku.php?id=base:vicii_memory_organizing
+
+
+## TODO:
 - INDEXEDINDERECT tests wre not sufficient
 - BIT tests do not check V flag correctly
+- VIC Implementation
+- CIA Implementation
+- Refactor Class structure
+- ....

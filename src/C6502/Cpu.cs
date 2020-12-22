@@ -65,6 +65,7 @@ namespace C6502
     {
         // Registers
 
+        public Memory mem;
         private uint _A,_X,_Y,_S,_P,_PC;
         private uint _AddrPins,_DataPins,_IOPorts;
         //private uint _RW,_SYNC,_RD,_AEC,_IRQ,_NMI,_RES,_PHY1,_PHY2;
@@ -129,7 +130,9 @@ namespace C6502
         }
         private Dictionary<uint,Instruction> instructionSet;
 
-        public Cpu() {
+        public Cpu(Memory m) {
+            
+            mem = m;
             Init();
 
             this.instructionSet = new Dictionary<uint, Instruction>();
@@ -352,7 +355,11 @@ namespace C6502
                     BrkFlag |= (uint) BrkFlagsMask.RESET;
                 }
 
-                // TODO NMI and IRQ
+                if (IRQ && (( P & (uint) StatusFlagsMask.I) == 0) ) {
+                    BrkFlag |= (uint) BrkFlagsMask.IRQ;                    
+                }
+
+                // TODO NMI
 
                 if (BrkFlag != 0 ) {
                     IR = instructionSet[0x00];
@@ -1678,6 +1685,16 @@ namespace C6502
                     break;
                 }
                 
+            }
+
+            
+            if ( RW ) {
+                // Read Data from memory and put them on the data bus
+                DataPins = mem.Read(AddrPins);
+
+            } else {
+                // Write Data from databus into memory
+                mem.Write(AddrPins,DataPins);
             }
             _opcycle++;
         }
