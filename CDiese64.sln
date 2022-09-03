@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HexParser", "src\HexParser\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HexParserTest", "src\HexParserTest\HexParserTest.csproj", "{EB514DDF-C2C7-44C8-AB3A-D1CA6041DA4C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "C64UI", "C64UI\C64UI.csproj", "{91448DFB-F1D7-476F-9B8B-B72DF67F4861}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{EB514DDF-C2C7-44C8-AB3A-D1CA6041DA4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB514DDF-C2C7-44C8-AB3A-D1CA6041DA4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB514DDF-C2C7-44C8-AB3A-D1CA6041DA4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91448DFB-F1D7-476F-9B8B-B72DF67F4861}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91448DFB-F1D7-476F-9B8B-B72DF67F4861}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91448DFB-F1D7-476F-9B8B-B72DF67F4861}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91448DFB-F1D7-476F-9B8B-B72DF67F4861}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -25,7 +25,31 @@ namespace C64
                 cpu._opcycle
                 );
         }
-        
+
+        public static void WriteBitmapToPPM(string file, int width, int height, uint[] screen)
+        {
+            //Use a streamwriter to write the text part of the encoding
+            var writer = new StreamWriter(file);
+            writer.WriteLine("P6");
+            writer.WriteLine($"{width}  {height}");
+            writer.WriteLine("255");
+            writer.Close();
+            //Switch to a binary writer to write the data
+            var writerB = new BinaryWriter(new FileStream(file, FileMode.Append));
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    byte red = (byte) ((screen[x + y * width] & 0xFF0000) >> 16);
+                    byte green = (byte)((screen[x + y * width] & 0x00FF00) >> 8);
+                    byte blue = (byte)((screen[x + y * width] & 0x0000FF));
+
+                    writerB.Write(red);
+                    writerB.Write(green);
+                    writerB.Write(blue);
+                }
+            writerB.Close();
+        }
+
         static void Main(string[] args)
         {
 
@@ -144,13 +168,16 @@ namespace C64
                         // breakPoint = 0xEA12; // End of clear screen 
                         //breakPoint = 0xE564; // Memory TEST
                         if (cpu.PC == breakPoint ) {
-                            Console.WriteLine("DEBUG");  
+                           /* Console.WriteLine("DEBUG");  
                             for (int y=0; y<25; y++) {
                                 for (int x=0; x<40;x++) {
                                     Console.Write("{0,2:X2} ", mem.Read( (uint) (1024+x+40*y)));
                                 }
                                 Console.WriteLine();
                             }
+                           */
+
+                            WriteBitmapToPPM("test.ppm", 504,312, vic.Screen);
                             debug = true;                
                             //break;
                         }

@@ -283,6 +283,7 @@ namespace VIC6569
         private uint _VMLI { get; set;}
         // Row Counter
         private uint _RC { get; set;}
+
         // MOB Data Counter
         private uint _MC { get;set;} 
 
@@ -305,8 +306,8 @@ namespace VIC6569
         private uint _cyclesPerLines = 63;
         private uint _visiblePixelPerLines = 403;
 
-                // Screen array or RGBA => 4 bytes per pixel
-        public byte[] Screen;
+        // Screen array or RGB => 3 bytes per pixel
+        public uint[] Screen;
 
         //          | First  |  Last  |              |   First    |   Last
         //          | vblank | vblank | First X coo. |  visible   |  visible
@@ -328,6 +329,7 @@ namespace VIC6569
         // is handled
         private uint _x;
         private uint _y;
+        private uint _sequencer;
 
         // For DRAM access
         private uint _ref=0xFF;
@@ -337,18 +339,19 @@ namespace VIC6569
 
         public uint _opcycle;
 
+
         private void Init() {
             _opcycle = 1;
             _y = 0;
-            RASTER = 0;
-            // Set RST8 to 0
-            CR1 &= ( ~0x80 & 0xFF);
             _x = _firstXCoord;
-            // Set DEN
-            CR1 |= 0x10;
+            RASTER = 0;
+            // Initialise CR1
+            CR1 = 0b0001_1000;
+            // Initialise CR2
+            CR2 = 0b1100_1000;
             PHY0 = false;
             MP = 0x14;
-            Screen = new byte[_visiblePixelPerLines*_numberLines*4];
+            Screen = new uint[_cyclesPerLines*8*_numberLines];
         }
 
         private void _paccess(uint sprite){ }
@@ -375,8 +378,10 @@ namespace VIC6569
                 AddrPins = ((MP & 0b0000_1110) << 10 ) | (VideoMatrixLine[_VMLI] << 3) | _RC;
                 // TODO: Set Datapins by reading memory
                 DataPins = _fetchMemory(AddrPins);
-                Console.WriteLine("{0,3:X2}",DataPins);
+                //Console.WriteLine("{0,3:X2}",DataPins);
                 _VC = (_VC+1) & 0x3FF;
+                // TODO : Reset of _sequencer should depend on XSCROLL
+                _sequencer = DataPins;
                 if ( _VC >= 1000) {
                     //
                 }
@@ -384,7 +389,9 @@ namespace VIC6569
             } else {
                 // TODO handle ECM and read 0x39FF
                 AddrPins = 0x3FFF;
+                _sequencer = 0;
             }
+
         }
         private void _saccess(){ }
         private void _dramRefresh() {
@@ -412,18 +419,41 @@ namespace VIC6569
         }
 
         public void GraphicsDataSequencer() {
-        
+
             // Only draw if flipflop not set
             // output background color otherwise
-            if (!_verticalBorderFlipFlop) {
-
+            uint pixel;
+            if (!_verticalBorderFlipFlop && !_mainBorderFlipFlop) {
+                if ( (_sequencer & 0x80) == 0x80 )
+                    pixel = 0xFFFFFF;
+                else
+                {
+                    pixel = 0x00AA00;
+                }
             } else {
-
+                pixel = 0x88FF00;
             }
+
+            _sequencer = (_sequencer << 1) & 0xFF;
+            // _cycle*_numberLines*3
+            if ( _y % 8 == 0 )
+            {
+                pixel |= 0xFF0000;
+            }
+            if (_x % 8 == 0 )
+            {
+                pixel |= 0x008000;
+            }
+            if (_badLine)
+            {
+                pixel |= 0x005500;
+            }
+            Screen[_x+_y*_cyclesPerLines*8] = pixel;
             
         }
 
-        public void Tick() {
+        public void Tick()
+        {
 
             // RSEL|  Display window height   | First line  | Last line
             // ----+--------------------------+-------------+----------
@@ -441,220 +471,284 @@ namespace VIC6569
             _firstXCoord = (CR2 & 0x08) == 0 ? 0x1F : 0x18;
             _lastXCoord = (CR2 & 0x08) == 0 ? 0x14E : 0x157;
 
-            // Bad Line
-            _badLine = ( ( RASTER >= 0x30 && RASTER <= 0xF7) && 
-                ( (RASTER & 0x07) == (CR1 & 0x07) ) &&
-                ( (CR1 & 0x10) == 0x10));
-            if (_badLine) {
-                _displayState = true;
+
+            if ( (CR1 & 0x07) != 0 )  
+            {
+                // 
+                
+                Console.WriteLine("YSCROLL Set");
             }
 
-            if (_opcycle == _cyclesPerLines+1) {
-                    _opcycle = 1;
+                if (_opcycle == _cyclesPerLines + 1)
+            {
+                _opcycle = 1;
             }
 
             //Console.WriteLine("{0,4} {1,2} {2,3}",PHY0, _opcycle,_VMLI);
 
             AEC = PHY0;
 
-            if (_opcycle >= 15 && _opcycle <= 54 ) {
-                AEC = ! _badLine;
-           } else {
+            if (_opcycle >= 15 && _opcycle <= 54)
+            {
+                AEC = !_badLine;
+            }
+            else
+            {
                 AEC = PHY0;
             }
 
-            if (_opcycle >= 16 && _opcycle <= 54 ) {
-                if (!PHY0) {
-                    _gaccess();    
-                } else {
+            if (_opcycle >= 16 && _opcycle <= 54)
+            {
+                if (!PHY0)
+                {
+                    _gaccess();
+                }
+                else
+                {
                     _caccess();
                 }
             }
-             switch(_opcycle) {
-                case 1: {
-                    _y++;
-                    if ( _y == _numberLines) {
-                        _y = 0;
-                        _x = _firstXCoord;
-                        _ref = 0xFF;
-                        _VCBASE = 0;
+            switch (_opcycle)
+            {
+                case 1:
+                    {
+                        if (_y == 0)
+                        {
+                            _x = _firstXCoord;
+                            _ref = 0xFF;
+                            _VCBASE = 0;
+                        }
+
+                        RASTER = _y & 0xFF;
+                        CR1 = (CR1 & (~0x80 & 0xFF)) | ((_y & 0x100) >> 1);
+
+                        // Bad Line
+                        _badLine = ((RASTER >= 0x30 && RASTER <= 0xF7) &&
+                            ((RASTER & 0x07) == (CR1 & 0x07)) &&
+                            ((CR1 & 0x10) == 0x10));
+                        if (_badLine)
+                        {
+                            _displayState = true;
+                        }
+
+                        // Compare Raster line with $d012/$d011(bit 7)
+                        // if line is not 0
+                        // if same, IRQ should be set and RST set as IRQ reason
+                        if ((_y != 0) && _y == (RASTER | ((CR1 & 0x80) << 1)))
+                        {
+                            INTR |= 0x01;
+                            // toDO: Should we also set INTE
+
+                        }
+
+
+                        // pAccess(3)
+                        _paccess(3);
+                        BA = true;
+
+
+                        break;
+                    }
+                case 2:
+                    {
+
+                        // Compare Raster line with $d012/$d011(bit 7)
+                        // if line is not 0
+                        // if same, IRQ should be set and RST set as IRQ reason
+                        if ((_y == 0) && _y == (RASTER | ((CR1 & 0x80) << 1)))
+                        {
+                            INTR |= 0x01;
+
+                        }
+                        _idleAccess();
+                        break;
                     }
 
-                    // Compare Raster line with $d012/$d011(bit 7)
-                    // if line is not 0
-                    // if same, IRQ should be set and RST set as IRQ reason
-                    if ( (_y != 0 ) && _y == (RASTER | ((CR1 & 0x80) <<1))) {
-                        INTR |= 0x01;
-                        // toDO: Should we also set INTE
-
+                case 3:
+                    {
+                        _paccess(4);
+                        break;
                     }
-                    RASTER = _y & 0xFF;
-                    CR1 = (CR1 & (~0x80 & 0xFF)) |  ( (_y & 0x100) >> 1);
 
-                    // pAccess(3)
-                    _paccess(3);
-                    BA = true;
-
-
-                    break;
-                }
-                case 2: {
-
-                    // Compare Raster line with $d012/$d011(bit 7)
-                    // if line is not 0
-                    // if same, IRQ should be set and RST set as IRQ reason
-                    if ( (_y == 0 ) && _y == (RASTER | ((CR1 & 0x80) <<1))) {
-                        INTR |= 0x01;
-
+                case 5:
+                    {
+                        _paccess(5);
+                        break;
                     }
-                    _idleAccess();
-                    break;
-                }
-
-                case 3: {
-                    _paccess(4);
-                    break;
-                }
-
-                case 5: {
-                    _paccess(5);
-                    break;
-                }
-                case 7: {
-                    _paccess(6);
-                    break;
-                }
-                case 9: {
-                    _paccess(7);
-                    break;
-                }
+                case 7:
+                    {
+                        _paccess(6);
+                        break;
+                    }
+                case 9:
+                    {
+                        _paccess(7);
+                        break;
+                    }
 
                 case 4:
                 case 6:
                 case 8:
-                case 10: {
-                    _idleAccess();
-                    break;
-                }
-
-                case 11: {
-                    _dramRefresh();
-                    break;
-                }
-                case 12: {
-                    if (!PHY0) {
-                        BA = ! _badLine;
+                case 10:
+                    {
+                        _idleAccess();
+                        break;
                     }
-                    break;
-                }
+
+                case 11:
+                    {
+                        _dramRefresh();
+                        break;
+                    }
+                case 12:
+                    {
+                        if (!PHY0)
+                        {
+                            BA = !_badLine;
+                        }
+                        break;
+                    }
 
                 case 13:
-                    if (!PHY0) {
+                    if (!PHY0)
+                    {
                         _dramRefresh();
                     }
                     break;
                 case 14:
-                    if (!PHY0) {
+                    if (!PHY0)
+                    {
                         _VC = _VCBASE;
                         _VMLI = 0;
-                        if (_badLine) {_RC = 0;}
+                        if (_badLine) { _RC = 0; }
                         _dramRefresh();
                     }
                     break;
-                case 15: {
-                    if (!PHY0) {
-                        _dramRefresh();
+                case 15:
+                    {
+                        if (!PHY0)
+                        {
+                            _dramRefresh();
 
-                    } else {
-                        _caccess();
+                        }
+                        else
+                        {
+                            _caccess();
+                        }
+
+                        break;
                     }
-
-                    break;
-                }
                 case 16:
-                case 54: {
-                    break;
-                }
+                case 54:
+                    {
+                        break;
+                    }
 
 
-                case 55: {
-                    BA = true;
-                    _gaccess();
-                    break;
-                }
+                case 55:
+                    {
+                        BA = true;
+                        _gaccess();
+                        break;
+                    }
 
                 case 56:
                 case 57:
-                case 61: {
-                    _idleAccess();
-                    break;
-                }
+                case 61:
+                    {
+                        _idleAccess();
+                        break;
+                    }
 
-                case 58: {
-                    if (_RC == 7 ) {
-                        _VCBASE = (_VC & 0x3FF);
-                        if ( !_badLine) {
-                            _displayState = false;
+                case 58:
+                    {
+                        if (_RC == 7)
+                        {
+                            _VCBASE = (_VC & 0x3FF);
+                            if (!_badLine)
+                            {
+                                _displayState = false;
+                            }
                         }
+                        if (_displayState)
+                        {
+                            _RC = (_RC + 1) & 0x07;
+                        }
+                        _paccess(0);
+                        break;
                     }
-                    if (_displayState) {
-                        _RC = (_RC+1) &0x07;
+                case 59:
+                    {
+                        _idleAccess();
+                        break;
                     }
-                    _paccess(0);
-                    break;
-                }
-                case 59: {
-                    _idleAccess();
-                    break;
-                }
-                case 60: {
-                    _paccess(1);
-                    break;
-                }
-                case 62: {
-                    _paccess(2);
-                    break;
-                }
+                case 60:
+                    {
+                        _paccess(1);
+                        break;
+                    }
+                case 62:
+                    {
+                        _paccess(2);
+                        break;
+                    }
 
-                case 63: {
-                    _idleAccess();
-                    if (_y == _lastLine) {
-                        _verticalBorderFlipFlop = true;
+                case 63:
+                    {
+                        _idleAccess();
+                        if (_y == _lastLine)
+                        {
+                            _verticalBorderFlipFlop = true;
+                        }
+                        if ((_y == _firstLine) && ((CR1 & 0x10) == 0x10))
+                        {
+                            _verticalBorderFlipFlop = false;
+                        }
+                        break;
                     }
-                    if ( (_y == _firstLine) && ( (CR1 & 0x10) == 0x10 ) ) {
-                        _verticalBorderFlipFlop = false;
-                    }
-                    break;
-                }
 
             }
 
 
-            for (var px = 0; px <8; px++) {
+            for (var px = 0; px < 8; px++)
+            {
+                GraphicsDataSequencer();
                 _x++;
 
-                if ( _x == _lastXCoord) {
+                if (_x == _lastXCoord)
+                {
                     _mainBorderFlipFlop = true;
-                } 
-                if ( _x == _firstXCoord && _y == _lastLine ) {
+                }
+                if (_x == _firstXCoord && _y == _lastLine)
+                {
                     _verticalBorderFlipFlop = true;
                 }
 
-                if ( _x == _firstXCoord && _y == _firstLine && ( (CR1 & 0x10) == 0x10 ) ) {
+                if (_x == _firstXCoord && _y == _firstLine && ((CR1 & 0x10) == 0x10))
+                {
                     _verticalBorderFlipFlop = false;
                 }
 
-                if (_x == _firstXCoord && !_verticalBorderFlipFlop) {
+                if (_x == _firstXCoord && !_verticalBorderFlipFlop)
+                {
                     _mainBorderFlipFlop = false;
                 }
 
-                if ( _x == 0x1f8) {
+                if (_x == 0x1f8)
+                {
                     _x = 0;
                 }
+
             }
 
+            if (_opcycle == 63) {
+                _y++;
+                if (_y == _numberLines)
+                {
+                    _y = 0;
+                }
 
-
+            }
         }
     }
 }
