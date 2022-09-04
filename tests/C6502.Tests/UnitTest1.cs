@@ -16,6 +16,7 @@ namespace C6502.Tests
         }
         public void CPUReset(){
 
+            cpu.RES = false;
             cpu.A = cpu.X = cpu.Y = 0;
             cpu.S = 0xFF;
             cpu.PC = 0x0000;

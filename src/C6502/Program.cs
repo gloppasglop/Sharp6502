@@ -47,7 +47,6 @@ namespace C6502
             */
       
 
-            //byte[] fileBytes = File.ReadAllBytes("../../tests/6502_functional_test.bin");
 
             byte[] kernalBytes = File.ReadAllBytes("C:\\Users\\glopp\\Downloads\\GTK3VICE-3.4-win64-r39109\\GTK3VICE-3.4-win64-r39109\\C64\\kernal");
             offset = 0;
@@ -64,10 +63,17 @@ namespace C6502
             }
 
 
+            byte[] fileBytes = File.ReadAllBytes("../../tests/6502_functional_test.bin");
+            offset = 0x000A;
+
+            foreach (uint data in fileBytes) {
+                mem.Write(offset++,data);
+            }
+
+            cpu.RES = true;
             cpu.PC = 0x0400;
             cpu.AddrPins = cpu.PC;
             cpu.DataPins = mem.Read(cpu.PC);
-            cpu.RES = true;
             
             ulong tick = 0; 
 
@@ -88,7 +94,6 @@ namespace C6502
 
             uint previousPC= 0x1FFFF;
             bool debug = false;
-            debug = false;
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             while(true) {
@@ -98,7 +103,6 @@ namespace C6502
                     cpu.Tick();
 
                     if (debug) {
-
                     }
                     
 
@@ -112,7 +116,9 @@ namespace C6502
                     }
 
                     tick++;
-                    if ( debug) { DumpState(tick,cpu); }
+                    if ( debug) {
+                        DumpState(tick,cpu);
+                    }
 
                     // For functional test end
                     //if (cpu.PC == 0x3375) {

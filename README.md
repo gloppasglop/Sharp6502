@@ -27,5 +27,12 @@ https://www.pagetable.com/c64ref/c64disasm/#D50
 https://dustlayer.com/c64-architecture/2013/4/13/ram-under-rom
 
 TODO:
-- INDEXEDINDERECT tests wre not sufficient
-- BIT tests do not check V flag correctly
+- DECIMAL mode
+
+## Compile functional test
+
+```
+cd tests
+..\tools\as65.exe -l -m -w -h0  .\6502_functional_test.a65
+```
+

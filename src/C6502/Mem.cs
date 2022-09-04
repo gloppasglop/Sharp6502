@@ -70,12 +70,12 @@ namespace C6502
                 Mem = new uint[8192],
                 BankType = BankType.RAM
             };
-            BankZones[0] = new BankZone{
+            /* BankZones[0] = new BankZone{
                 StartAddress = 0x0000,
                 EndAddress = 0x0FFF,
                 Mem = new uint[4096],
                 BankType = BankType.RAM
-            };
+            };*/
 
             // Mapping address to bank
             for (uint addr=0; addr<=0x10000; addr++) {
