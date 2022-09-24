@@ -5,9 +5,16 @@
     <ProjectReference Include="..\vic6569\vic6569.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="OpenTK" Version="4.7.4" />
+    <PackageReference Include="Silk.NET" Version="2.16.0" />
+    <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.16.0" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
 </Project>

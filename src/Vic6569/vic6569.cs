@@ -116,14 +116,14 @@ namespace VIC6569
             get => Mem.Read(0xD010);
             set => Mem.Write(0xD010,value);
         }
+        // Control Register 1
+        //           8|   7|   6|   5|   4|       0|
+        // $d011 |RST8| ECM| BMM| DEN|RSEL| YSCROLL|
         public uint CR1 {
             get => Mem.Read(0xD011);
             set => Mem.Write(0xD011,value);
         }
 
-        // Control Register 1
-        //           8|   7|   6|   5|   4|       0|
-        // $d011 |RST8| ECM| BMM| DEN|RSEL| YSCROLL|
         public uint RASTER {
             get => Mem.Read(0xD012);
             set => Mem.Write(0xD012,value);
@@ -143,6 +143,8 @@ namespace VIC6569
             set => Mem.Write(0xD015,value);
         }
         // Control Register 2
+        //           8|   7|   6|   5|   4|       0|
+        // $d016 |  - |  - | RES| MCM|CSEL| XSCROLL|
         public uint CR2 {
             get => Mem.Read(0xD016);
             set => Mem.Write(0xD016,value);
@@ -153,6 +155,7 @@ namespace VIC6569
             set => Mem.Write(0xD017,value);
         }
         // Memory pointers
+        // $d018 |VM13|VM12|VM11|VM10|CB13|CB12|CB11|  - | Memory pointers
         public uint MP {
             get => Mem.Read(0xD018);
             set => Mem.Write(0xD018,value);
@@ -278,16 +281,16 @@ namespace VIC6569
         }
 
         // Video Matrix Counter
-        private uint _VC { get; set;}
-        private uint _VCBASE { get; set;}
-        private uint _VMLI { get; set;}
+        public uint _VC { get; set;}
+        public uint _VCBASE { get; set;}
+        public uint _VMLI { get; set;}
         // Row Counter
-        private uint _RC { get; set;}
+        public uint _RC { get; set;}
 
         // MOB Data Counter
         private uint _MC { get;set;} 
 
-        private bool _badLine;
+        public bool _badLine;
         private uint _displayWindowsHeight;
         private uint _displayWindowsWidth;
         private uint _firstLine;
@@ -304,10 +307,11 @@ namespace VIC6569
         private uint _numberLines = 312;
         private uint _visibleLines = 284;
         private uint _cyclesPerLines = 63;
+        private uint _numberRows;
         private uint _visiblePixelPerLines = 403;
 
         // Screen array or RGB => 3 bytes per pixel
-        public uint[] Screen;
+        public byte[] Screen;
 
         //          | First  |  Last  |              |   First    |   Last
         //          | vblank | vblank | First X coo. |  visible   |  visible
@@ -327,13 +331,15 @@ namespace VIC6569
         
         //TODO: Confir if this is how X position
         // is handled
-        private uint _x;
-        private uint _y;
+        public uint _x;
+        public uint _y;
         private uint _sequencer;
+        private uint _color;
+
 
         // For DRAM access
         private uint _ref=0xFF;
-        private bool _displayState;
+        public bool _displayState;
 
         public uint[] VideoMatrixLine = new uint[40];
 
@@ -341,9 +347,10 @@ namespace VIC6569
 
 
         private void Init() {
-            _opcycle = 1;
+            _opcycle = 0;
             _y = 0;
-            _x = _firstXCoord;
+            //_x = _firstXCoord;
+            _x = _firstXCoordLine+4;
             RASTER = 0;
             // Initialise CR1
             CR1 = 0b0001_1000;
@@ -351,24 +358,58 @@ namespace VIC6569
             CR2 = 0b1100_1000;
             PHY0 = false;
             MP = 0x14;
-            Screen = new uint[_cyclesPerLines*8*_numberLines];
+            _numberRows = _cyclesPerLines*8;
+            Screen = new byte[4*_cyclesPerLines*8*_numberLines];
         }
 
         private void _paccess(uint sprite){ }
         private void _caccess() {
             // TODO create flags enum
-            // EMM/BMM/MCM = 0/0/0
+            //  3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
+            // 3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
+            // 3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
+            // 3.7.3.4. Multicolor bitmap mode (ECM/BMM/MCM=0/1/1)
+            // 3.7.3.5. ECM text mode (ECM/BMM/MCM=1/0/0)
+            // 3.7.3.6. Invalid text mode (ECM/BMM/MCM=1/0/1)
+            // 3.7.3.7. Invalid bitmap mode 1 (ECM/BMM/MCM=1/1/0)
+            // 3.7.3.8. Invalid bitmap mode 2 (ECM/BMM/MCM=1/1/1)
+
+            // ---------------------------
+            // CR1: §Control Register 1
+            //           8|   7|   6|   5|   4|       0|
+            // $d011 |RST8| ECM| BMM| DEN|RSEL| YSCROLL|
+            // ---------------------------
+            // Control Register 2
+            //           8|   7|   6|   5|   4|       0|
+            // $d016 |  - |  - | RES| MCM|CSEL| XSCROLL|
+            // ---------------------------
             // Addresses
             // +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
             // | 13 | 12 | 11 | 10 |  9 |  8 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
             // +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
             // |VM13|VM12|VM11|VM10| VC9| VC8| VC7| VC6| VC5| VC4| VC3| VC2| VC1| VC0|
             // +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+
+            // EMM/BMM/MCM = 0/0/0
             if ( ((CR1 & ( 0x40 | 0x20 ))  == 0 ) && ((CR2 & 0x10) == 0 )) {
                 AddrPins = (MP & 0xF0) <<6 | _VC;
                 DataPins = _fetchMemory(AddrPins);
+                _color =  Mem.Read(0xD800 | _VC) & 0xF ;
                 VideoMatrixLine[_VMLI] = DataPins;
-            }
+                return;
+            } 
+
+            // EMM/BMM/MCM = 0/0/1
+            if ( ((CR1 & ( 0x40 | 0x20 ))  == 0 ) && ((CR2 & 0x10) == 0x10 )) {
+                AddrPins = (MP & 0xF0) <<6 | _VC;
+                DataPins = _fetchMemory(AddrPins);
+                _color =  Mem.Read(0xD800 | _VC) & 0xF ;
+                VideoMatrixLine[_VMLI] = DataPins;
+                return;
+            } 
+            
+            
+            Console.WriteLine($"Unhandled mode: CR1: {CR1}, CR2: {CR2}");
 
 
         }
@@ -376,20 +417,23 @@ namespace VIC6569
 
             if (_displayState) {
                 AddrPins = ((MP & 0b0000_1110) << 10 ) | (VideoMatrixLine[_VMLI] << 3) | _RC;
-                // TODO: Set Datapins by reading memory
-                DataPins = _fetchMemory(AddrPins);
-                //Console.WriteLine("{0,3:X2}",DataPins);
+                DataPins = _fetchMemory(AddrPins) ;
+                
                 _VC = (_VC+1) & 0x3FF;
+
                 // TODO : Reset of _sequencer should depend on XSCROLL
                 _sequencer = DataPins;
-                if ( _VC >= 1000) {
-                    //
-                }
                 _VMLI++;
             } else {
-                // TODO handle ECM and read 0x39FF
-                AddrPins = 0x3FFF;
-                _sequencer = 0;
+                // The access is always to address
+                // $3fff ($39ff when the ECM bit in register $d016 is set
+                if ( (CR1 & 0x40) == 0) {
+                    AddrPins = 0x3FFF;
+                    _sequencer = 0;
+                } else {
+                    AddrPins = 0x39FF;
+                    _sequencer = 0;
+                }
             }
 
         }
@@ -410,7 +454,7 @@ namespace VIC6569
 
         private uint _fetchMemory(uint addr) { 
             if ( (_bank == 0 || _bank == 2) && (addr & 0x1000) == 0x1000 ) {
-                // When vic reads from 0x1000-0x1fff (from vicii pint of vie
+                // When vic reads from 0x1000-0x1fff (from vicii pint of view
                 // read characted ROM)
                 return Mem.ReadCharRom(addr&0x0FFF);
             } else {
@@ -418,71 +462,162 @@ namespace VIC6569
             }
         }
 
+        private (byte,byte,byte)  _getColorPalette(uint  color) {
+
+            switch(color) {
+                case 0:
+                    return (0,0,0);
+                case 1:
+                    return (0xFF, 0xFF, 0xFF);
+                case 2:
+                    return (0x88, 0, 0);
+                case 3:
+                    return (0xAA, 0xFF, 0xEE);
+                case 4:
+                    return (0xCC, 0x44, 0xCC);
+                case 5:
+                    return (0, 0xCC, 0x55);
+                case 6:
+                    return(0, 0, 0xAA);
+                case 7:
+                    return(0xEE, 0xEE, 0x77);
+                case 8:
+                    return(0xDD, 0x88, 0x55);
+                case 9:
+                    return(0x66, 0x44, 0);
+                case 10:
+                    return(0xFF, 0x77, 0x77);
+                case 11:
+                    return(0x33, 0x33, 0x33);
+                case 12:
+                    return(0x77, 0x77, 0x77);
+                case 13:
+                    return(0xAA, 0xFF, 0x66);
+                case 14:
+                    return(0, 0x88,0xFF);
+                case 15:
+                    return(0xBB, 0xBB, 0xBB);
+            }
+            return (0,0,0);
+
+        }
         public void GraphicsDataSequencer() {
+            for (var px = 0; px < 4; px++)
+            {
 
-            // Only draw if flipflop not set
-            // output background color otherwise
-            uint pixel;
-            if (!_verticalBorderFlipFlop && !_mainBorderFlipFlop) {
-                if ( (_sequencer & 0x80) == 0x80 )
-                    pixel = 0xFFFFFF;
-                else
+
+                if (_x == _lastXCoord)
                 {
-                    pixel = 0x00AA00;
+                    _mainBorderFlipFlop = true;
                 }
-            } else {
-                pixel = 0x88FF00;
-            }
+                if (_x == _firstXCoord && _y == _lastLine)
+                {
+                    _verticalBorderFlipFlop = true;
+                }
 
-            _sequencer = (_sequencer << 1) & 0xFF;
-            // _cycle*_numberLines*3
-            if ( _y % 8 == 0 )
-            {
-                pixel |= 0xFF0000;
-            }
-            if (_x % 8 == 0 )
-            {
-                pixel |= 0x008000;
-            }
-            if (_badLine)
-            {
-                pixel |= 0x005500;
-            }
-            Screen[_x+_y*_cyclesPerLines*8] = pixel;
-            
+                if (_x == _firstXCoord && _y == _firstLine && ((CR1 & 0x10) == 0x10))
+                {
+                    _verticalBorderFlipFlop = false;
+                }
+
+                if (_x == _firstXCoord && !_verticalBorderFlipFlop)
+                {
+                    _mainBorderFlipFlop = false;
+                }
+
+                var red = ( byte) 0;
+                var green = (byte) 0;
+                var blue = (byte) 0;
+                var alpha = (byte) 0;
+                // Check if we are not in the borders
+                if (!_verticalBorderFlipFlop && !_mainBorderFlipFlop)
+                {
+                    // If foreground Pixel
+                    if ( (_sequencer & 0x80) == 0x80 )
+                    {
+                        //pixel[0] = 0xFF;
+                        //pixel[1] = 0x88;
+                        //pixel[2] = 0xFF;
+                        //pixel = _getColorPalette(_color);
+                        (red, green ,blue) = _getColorPalette(_color);
+                    }
+                    else
+                    {
+                        // Background Color
+                        //pixel[0] = 0x00;
+                        //pixel[1] = 0x00;
+                        //pixel[2] = 0xAA;
+                        (red,green,blue) = _getColorPalette(B0C);
+
+
+                    }
+                    if ( !(_displayState) )
+                    {
+                        (red,green,blue) = (0xFF, 0x00, 0x00);
+                    }
+
+                } else {
+                    // Border Color
+                    (red,green,blue) = _getColorPalette(EC);
+                }
+
+                _sequencer = (_sequencer << 1) & 0xFF;
+
+                //Screen[4*(_x+_y*_cyclesPerLines*8)] = pixel[0];
+
+                Screen[4*(_x+(_numberLines-1-_y)*_numberRows)] = red;
+                Screen[4*(_x+(_numberLines-1-_y)*_numberRows)+1] = green;
+                Screen[4*(_x+(_numberLines-1-_y)*_numberRows)+2] = blue;
+
+                _x++;
+                if (_x == 0x1f8)
+                {
+                    _x = 0;
+                }
+            }            
         }
 
         public void Tick()
         {
 
+            if (!PHY0) {
+                _opcycle++;
+                if (_opcycle == _cyclesPerLines + 1) {
+                    _opcycle = 1;
+                }
+
+            }
+
             // RSEL|  Display window height   | First line  | Last line
             // ----+--------------------------+-------------+----------
             //   0 | 24 text lines/192 pixels |   55 ($37)  | 246 ($f6)
             //   1 | 25 text lines/200 pixels |   51 ($33)  | 250 ($fa)
-            _displayWindowsHeight = (CR1 & 0x08) == 0 ? 24 : 25;
-            _firstLine = (CR1 & 0x08) == 0 ? 0x37 : 0x33;
-            _lastLine = (CR1 & 0x08) == 0 ? 0xf6 : 0xfa;
+            _displayWindowsHeight = (CR1 & 0x08) == 0 ? 24U : 25U;
+            _firstLine = (CR1 & 0x08) == 0 ? 0x37U : 0x33U;
+            _lastLine = (CR1 & 0x08) == 0 ? 0xf6U : 0xfaU;
 
             // CSEL|   Display window width   | First X coo. | Last X coo.
             //  ----+--------------------------+--------------+------------
             //    0 | 38 characters/304 pixels |   31 ($1f)   |  334 ($14e)
             //    1 | 40 characters/320 pixels |   24 ($18)   |  343 ($157)
-            _displayWindowsWidth = (CR2 & 0x08) == 0 ? 38 : 40;
-            _firstXCoord = (CR2 & 0x08) == 0 ? 0x1F : 0x18;
-            _lastXCoord = (CR2 & 0x08) == 0 ? 0x14E : 0x157;
+            _displayWindowsWidth = (CR2 & 0x08) == 0 ? 38U : 40U;
+            _firstXCoord = (CR2 & 0x08) == 0 ? 0x1FU : 0x18U;
+            _lastXCoord = (CR2 & 0x08) == 0 ? 0x14EU : 0x157U;
 
 
             if ( (CR1 & 0x07) != 0 )  
             {
                 // 
                 
-                Console.WriteLine("YSCROLL Set");
+                //Console.WriteLine("YSCROLL Set");
             }
 
-                if (_opcycle == _cyclesPerLines + 1)
-            {
-                _opcycle = 1;
-            }
+            // Moved to the END
+            // TODO: Remove comment if working
+            //if (_opcycle == _cyclesPerLines + 1)
+            //{
+            //    _opcycle = 1;
+            //}
 
             //Console.WriteLine("{0,4} {1,2} {2,3}",PHY0, _opcycle,_VMLI);
 
@@ -505,7 +640,10 @@ namespace VIC6569
                 }
                 else
                 {
-                    _caccess();
+                    if ( _badLine)
+                    {
+                        _caccess();
+                    }
                 }
             }
             switch (_opcycle)
@@ -514,7 +652,7 @@ namespace VIC6569
                     {
                         if (_y == 0)
                         {
-                            _x = _firstXCoord;
+                            _x = _firstXCoordLine+4;
                             _ref = 0xFF;
                             _VCBASE = 0;
                         }
@@ -523,7 +661,8 @@ namespace VIC6569
                         CR1 = (CR1 & (~0x80 & 0xFF)) | ((_y & 0x100) >> 1);
 
                         // Bad Line
-                        _badLine = ((RASTER >= 0x30 && RASTER <= 0xF7) &&
+                        // Full RASTER is RASTER ($d012) and MSB in bit 7 of CR1
+                        _badLine = (((RASTER | ((CR1 & 0x80) <<1)) >= 0x30 && (RASTER | ((CR1 & 0x80) <<1)) <= 0xF7) &&
                             ((RASTER & 0x07) == (CR1 & 0x07)) &&
                             ((CR1 & 0x10) == 0x10));
                         if (_badLine)
@@ -605,6 +744,7 @@ namespace VIC6569
                         if (!PHY0)
                         {
                             BA = !_badLine;
+                            _dramRefresh();
                         }
                         break;
                     }
@@ -710,34 +850,10 @@ namespace VIC6569
             }
 
 
-            for (var px = 0; px < 8; px++)
+            if ( !PHY0)
             {
-                GraphicsDataSequencer();
-                _x++;
 
-                if (_x == _lastXCoord)
-                {
-                    _mainBorderFlipFlop = true;
-                }
-                if (_x == _firstXCoord && _y == _lastLine)
-                {
-                    _verticalBorderFlipFlop = true;
-                }
-
-                if (_x == _firstXCoord && _y == _firstLine && ((CR1 & 0x10) == 0x10))
-                {
-                    _verticalBorderFlipFlop = false;
-                }
-
-                if (_x == _firstXCoord && !_verticalBorderFlipFlop)
-                {
-                    _mainBorderFlipFlop = false;
-                }
-
-                if (_x == 0x1f8)
-                {
-                    _x = 0;
-                }
+                //    GraphicsDataSequencer();
 
             }
 
@@ -746,9 +862,13 @@ namespace VIC6569
                 if (_y == _numberLines)
                 {
                     _y = 0;
+                    //for (int i = 0; i< Screen.Length; i++) { Screen[i] = 255;}
                 }
 
             }
+
+
+
         }
     }
 }

@@ -11,9 +11,9 @@ namespace C6502.Tests
         public Memory mem;
 
         public Computer() {
-            cpu = new Cpu(mem);
             mem = new Memory();
             mem.ConfigureBanks(0);         
+            cpu = new Cpu(mem);
         }
         public void CPUReset(){
 
@@ -21,6 +21,7 @@ namespace C6502.Tests
             cpu.S = 0xFF;
             cpu.PC = 0x0000;
             cpu.AddrPins = cpu.PC;
+            cpu.RES = false;
             cpu.DataPins = mem.Read(cpu.PC);
         }
 
@@ -49,7 +50,7 @@ namespace C6502.Tests
             return tick;
         }
         public Cpu Clone() {
-            var newCpu = new Cpu();
+            var newCpu = new Cpu(new Memory());
             newCpu.PC = cpu.PC;
             newCpu.A = cpu.A;
             newCpu.X = cpu.X;
