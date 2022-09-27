@@ -443,6 +443,11 @@ namespace VIC6569
                     Console.WriteLine($"Unhandled mode: CR1: {CR1}, CR2: {CR2}");
                     break;
             } 
+
+            if ( ! _displayState) {
+                _color = 0;
+                VideoMatrixLine[_VMLI] = 0;
+            }
             
 
 
@@ -485,10 +490,12 @@ namespace VIC6569
                 // $3fff ($39ff when the ECM bit in register $d016 is set
                 if ( (CR1 & 0x40) == 0) {
                     AddrPins = 0x3FFF;
-                    _sequencer = 0;
+                    DataPins = _fetchMemory(AddrPins) ;
+                    _sequencer = DataPins;
                 } else {
                     AddrPins = 0x39FF;
-                    _sequencer = 0;
+                    DataPins = _fetchMemory(AddrPins) ;
+                    _sequencer = DataPins;
                 }
             }
 
@@ -706,7 +713,34 @@ namespace VIC6569
                     }
                     if ( !(_displayState) )
                     {
-                        (red,green,blue) = (0xFF, 0x00, 0x00);
+                        switch(_graphicMode()) {
+                            case 0x0:
+                            case 0x1:
+                            case 0x4:
+                                if (single_pixel_value == 1) {
+                                    (red,green,blue) = (0x00, 0x00, 0x00);
+                                } else {
+                                    (red,green,blue) = _getColorPalette(B0C);
+                                } 
+                                break;
+                            case 0x2:
+                            case 0x1|0x4:
+                            case 0x2|0x4:
+                                (red,green,blue) = (0x00, 0x00, 0x00);
+                                break;
+                            case 0x1|0x2:
+                                if ( double_pixel_value == 0) {
+                                    (red,green,blue) = _getColorPalette(B0C);
+                                } else {
+                                    (red,green,blue) = (0x00, 0x00, 0x00);
+                                }
+                                break;
+                            default:
+                                (red,green,blue) = (0x00, 0x00, 0x00);
+                                break;
+
+                        }
+
                     }
 
                 } else {
