@@ -345,6 +345,13 @@ namespace VIC6569
 
         public uint _opcycle;
 
+        private uint _graphicMode() {
+
+	        return ((CR1 & ( 0x40 | 0x20 ) ) | ((CR2 & 0x10) ) ) >> 4;
+        }
+
+        private uint _cdata;
+
 
         private void Init() {
             _opcycle = 0;
@@ -390,39 +397,88 @@ namespace VIC6569
             // |VM13|VM12|VM11|VM10| VC9| VC8| VC7| VC6| VC5| VC4| VC3| VC2| VC1| VC0|
             // +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
 
-            // EMM/BMM/MCM = 0/0/0
-            if ( ((CR1 & ( 0x40 | 0x20 ))  == 0 ) && ((CR2 & 0x10) == 0 )) {
-                AddrPins = (MP & 0xF0) <<6 | _VC;
-                DataPins = _fetchMemory(AddrPins);
-                _color =  Mem.Read(0xD800 | _VC) & 0xF ;
-                VideoMatrixLine[_VMLI] = DataPins;
-                return;
-            } 
+            switch(_graphicMode()) {
+                // Standard Text Mode
+                // EMM/BMM/MCM = 0/0/0
+                case 0x0:
+                    AddrPins = (MP & 0xF0) <<6 | _VC;
+                    DataPins = _fetchMemory(AddrPins);
+                    _color =  Mem.Read(0xD800 | _VC) & 0xF ;
+                    VideoMatrixLine[_VMLI] = DataPins;
+                    break;
 
-            // EMM/BMM/MCM = 0/0/1
-            if ( ((CR1 & ( 0x40 | 0x20 ))  == 0 ) && ((CR2 & 0x10) == 0x10 )) {
-                AddrPins = (MP & 0xF0) <<6 | _VC;
-                DataPins = _fetchMemory(AddrPins);
-                _color =  Mem.Read(0xD800 | _VC) & 0xF ;
-                VideoMatrixLine[_VMLI] = DataPins;
-                return;
+                // Multicolor Text Mode
+                // EMM/BMM/MCM = 0/0/1
+                case 0x1:
+                    AddrPins = (MP & 0xF0) <<6 | _VC;
+                    DataPins = _fetchMemory(AddrPins);
+                    _color =  Mem.Read(0xD800 | _VC) & 0xF;
+                    VideoMatrixLine[_VMLI] = DataPins;
+                    break;
+                // Standard Bitmap Mode
+                // EMM/BMM/MCM = 0/1/0
+                case 0x2:
+                    AddrPins = (MP & 0xF0) <<6 | _VC;
+                    DataPins = _fetchMemory(AddrPins);
+                    // Bits 8-11 read from character map in text modes
+                    // but unused for bitmap mode
+                    // Should we still read it or just put dummy value
+                    _color =  Mem.Read(0xD800 | _VC) & 0xF ;
+                    VideoMatrixLine[_VMLI] = DataPins;
+                    break;
+                // multicolor Bitmap Mode
+                // EMM/BMM/MCM = 0/1/1
+                case 0x2|0x1:
+                    AddrPins = (MP & 0xF0) <<6 | _VC;
+                    DataPins = _fetchMemory(AddrPins);
+                    // Bits 8-11 read from character map in text modes
+                    // but unused for bitmap mode
+                    // Should we still read it or just put dummy value
+                    _color =  Mem.Read(0xD800 | _VC) & 0xF ;
+                    VideoMatrixLine[_VMLI] = DataPins;
+                    break;
+
+
+                default:
+                    Console.WriteLine($"Unhandled mode: CR1: {CR1}, CR2: {CR2}");
+                    break;
             } 
             
-            
-            Console.WriteLine($"Unhandled mode: CR1: {CR1}, CR2: {CR2}");
 
 
         }
         private void _gaccess(){
 
+	    
             if (_displayState) {
-                AddrPins = ((MP & 0b0000_1110) << 10 ) | (VideoMatrixLine[_VMLI] << 3) | _RC;
-                DataPins = _fetchMemory(AddrPins) ;
-                
-                _VC = (_VC+1) & 0x3FF;
+                switch(_graphicMode()) {
+                    case 0x0:
+                        // Standard Text Mode
+                    case 0x1:
+                        // Multicolor Text Mode
+                        AddrPins = ((MP & 0b0000_1110) << 10 ) | (VideoMatrixLine[_VMLI] << 3) | _RC;
+                        DataPins = _fetchMemory(AddrPins) ;
+                        _sequencer = DataPins;
+                        break;
+                    case 0x2:
+                        // Standard bitmap Mode
+                        AddrPins = ((MP & 0b0000_1000) << 10 ) | (_VC << 3) | _RC;
+                        DataPins = _fetchMemory(AddrPins) ;
+                        _sequencer = DataPins;
+                        break;
+                    case 0x2|0x1:
+                        // Multicolor bitmap Mode
+                        AddrPins = ((MP & 0b0000_1000) << 10 ) | (_VC << 3) | _RC;
+                        DataPins = _fetchMemory(AddrPins) ;
+                        _sequencer = DataPins;
+                        break;
+                    default:
+                        Console.WriteLine($"_gaccess - Unhandled mode: CR1: {CR1}, CR2: {CR2}");
+                        break;
 
+                }
+                _VC = (_VC+1) & 0x3FF;
                 // TODO : Reset of _sequencer should depend on XSCROLL
-                _sequencer = DataPins;
                 _VMLI++;
             } else {
                 // The access is always to address
@@ -466,44 +522,51 @@ namespace VIC6569
 
             switch(color) {
                 case 0:
-                    return (0,0,0);
+                    return (0x00,0x00,0x00);
                 case 1:
                     return (0xFF, 0xFF, 0xFF);
                 case 2:
-                    return (0x88, 0, 0);
+                    return (0x68, 0x37, 0x2B );
                 case 3:
-                    return (0xAA, 0xFF, 0xEE);
+                    return (0x70, 0xA4, 0xB2);
                 case 4:
-                    return (0xCC, 0x44, 0xCC);
+                    return (0x6F, 0x3D, 0x86);
                 case 5:
-                    return (0, 0xCC, 0x55);
+                    return (0x58, 0x8D, 0x43);
                 case 6:
-                    return(0, 0, 0xAA);
+                    return (0x35, 0x28, 0x79);
                 case 7:
-                    return(0xEE, 0xEE, 0x77);
+                    return (0xB8, 0xC7, 0x6F);
                 case 8:
-                    return(0xDD, 0x88, 0x55);
+                    return (0x6F, 0x4F, 0x25);
                 case 9:
-                    return(0x66, 0x44, 0);
+                    return (0x43, 0x39, 0x00);
                 case 10:
-                    return(0xFF, 0x77, 0x77);
+                    return (0x9A, 0x67, 0x59);
                 case 11:
-                    return(0x33, 0x33, 0x33);
+                    return (0x44, 0x44, 0x44);
                 case 12:
-                    return(0x77, 0x77, 0x77);
+                    return (0x6C, 0x6C, 0x6C);
                 case 13:
-                    return(0xAA, 0xFF, 0x66);
+                    return (0x9A, 0xD2, 0x84);
                 case 14:
-                    return(0, 0x88,0xFF);
+                    return (0x6c, 0x5e,0xb5);
                 case 15:
-                    return(0xBB, 0xBB, 0xBB);
+                    return (0x95, 0x95, 0x95);
             }
             return (0,0,0);
 
         }
         public void GraphicsDataSequencer() {
-            for (var px = 0; px < 4; px++)
+            var red = ( byte) 0;
+            var green = (byte) 0;
+            var blue = (byte) 0;
+            var alpha = (byte) 0;
+
+            for (var px = 0; px < 8; px++)
             {
+                var single_pixel_value = (_sequencer & (0b1  << (7-px))) >> (7-px);
+                var double_pixel_value = (_sequencer & (0b11 << (6-2*(px/2)))) >> (6-2*(px/2));
 
 
                 if (_x == _lastXCoord)
@@ -525,30 +588,120 @@ namespace VIC6569
                     _mainBorderFlipFlop = false;
                 }
 
-                var red = ( byte) 0;
-                var green = (byte) 0;
-                var blue = (byte) 0;
-                var alpha = (byte) 0;
                 // Check if we are not in the borders
                 if (!_verticalBorderFlipFlop && !_mainBorderFlipFlop)
                 {
-                    // If foreground Pixel
-                    if ( (_sequencer & 0x80) == 0x80 )
-                    {
-                        //pixel[0] = 0xFF;
-                        //pixel[1] = 0x88;
-                        //pixel[2] = 0xFF;
-                        //pixel = _getColorPalette(_color);
-                        (red, green ,blue) = _getColorPalette(_color);
-                    }
-                    else
-                    {
-                        // Background Color
-                        //pixel[0] = 0x00;
-                        //pixel[1] = 0x00;
-                        //pixel[2] = 0xAA;
-                        (red,green,blue) = _getColorPalette(B0C);
+                    switch(_graphicMode()) {
 
+                        case 0x0:
+                            // For standard Text Mode
+                            //    Each bit is a pixel
+                            //if ( ( (_sequencer & (1 << (7-px))  & 0x80) == 0x80 )
+                            if ( single_pixel_value == 1 )
+                            {
+                                (red, green ,blue) = _getColorPalette(_color);
+                            }
+                            else
+                            {
+                                (red,green,blue) = _getColorPalette(B0C);
+
+                            }
+                            break;
+                        case 0x1:
+                            // Multicolor text mode
+
+                            // Check MC flag of color
+                            // if set, 2 bits per pixel
+                            // if not, same as standard text mode but only 7 colors 
+                            // available
+                            if ( (_color & 0x8) == 0x8) {
+                                // set the color by pixel pairs
+                                if ( px % 2 == 0) {
+                                    //if ( (_sequencer & 0b1100_0000) == 0b1100_0000 )
+                                    if ( double_pixel_value == 0b11 )
+                                    {
+                                        (red, green ,blue) = _getColorPalette(_color & 0x7);
+                                    }
+                                    // else if ( (_sequencer & 0b0100_0000) == 0b0100_0000 )
+                                    else if ( double_pixel_value == 0b01 )
+                                    {
+                                        (red,green,blue) = _getColorPalette(B1C);
+                                    }
+                                    //else if ( (_sequencer & 0b1000_0000) == 0b1000_0000 )
+                                    else if ( double_pixel_value == 0b10 )
+                                    {
+                                        (red,green,blue) = _getColorPalette(B2C);
+                                    } else
+                                    {
+                                        (red,green,blue) = _getColorPalette(B0C);
+                                    }
+                                }
+                            } else {
+                                if ( single_pixel_value == 1 )
+                                {
+                                    (red, green ,blue) = _getColorPalette(_color);
+                                }
+                                else
+                                {
+                                    (red,green,blue) = _getColorPalette(B0C);
+
+                                }
+                            }
+                            break;
+
+                        case 0x2:
+                            // For standard Bitmap Mode
+                            //    Each bit is a pixel
+                            // +----+----+----+----+----+----+----+----+
+                            // |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+                            // +----+----+----+----+----+----+----+----+
+                            // |         8 pixels (1 bit/pixel)        |
+                            // |                                       |
+                            // | "0": Color from bits 0-3 of c-data    |
+                            // | "1": Color from bits 4-7 of c-data    |
+                            // +---------------------------------------+
+                            if ( single_pixel_value == 1 )
+                            {
+                                (red, green ,blue) = _getColorPalette((VideoMatrixLine[(_VMLI ) % 40 ] & 0xF0) >> 4);
+                            }
+                            else
+                            {
+                                (red,green,blue) = _getColorPalette((VideoMatrixLine[(_VMLI) % 40] & 0x7));
+                            }
+
+                            break;
+
+                        case 0x2|0x1:
+                            // For Multicolor Bitmap Mode
+                            // +----+----+----+----+----+----+----+----+
+                            // |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+                            // +----+----+----+----+----+----+----+----+
+                            // |         4 pixels (2 bits/pixel)       |
+                            // |                                       |
+                            // | "00": Background color 0 ($d021)      |
+                            // | "01": Color from bits 4-7 of c-data   |
+                            // | "10": Color from bits 0-3 of c-data   |
+                            // | "11": Color from bits 8-11 of c-data  |
+                            //  +---------------------------------------+
+
+			                if ( px % 2 == 0) {
+                                if ( double_pixel_value == 0b11 )
+                                {
+                                    (red, green ,blue) = _getColorPalette(_color & 0x7);
+                                }
+                                else if ( double_pixel_value == 0b01 )
+                                {
+                                    (red, green ,blue) = _getColorPalette((VideoMatrixLine[(_VMLI ) % 40 ] & 0xF0) >> 4);
+                                }
+                                else if ( double_pixel_value == 0b10 )
+                                {
+                                    (red,green,blue) = _getColorPalette((VideoMatrixLine[(_VMLI) % 40] & 0x7));
+                                } else
+                                {
+                                    (red,green,blue) = _getColorPalette(B0C);
+                                }
+                            }
+                            break;
 
                     }
                     if ( !(_displayState) )
@@ -561,7 +714,7 @@ namespace VIC6569
                     (red,green,blue) = _getColorPalette(EC);
                 }
 
-                _sequencer = (_sequencer << 1) & 0xFF;
+                //_sequencer = (_sequencer << 1) & 0xFF;
 
                 //Screen[4*(_x+_y*_cyclesPerLines*8)] = pixel[0];
 
@@ -575,6 +728,7 @@ namespace VIC6569
                     _x = 0;
                 }
             }            
+            _sequencer = 0;
         }
 
         public void Tick()
@@ -587,6 +741,7 @@ namespace VIC6569
                 }
 
             }
+
 
             // RSEL|  Display window height   | First line  | Last line
             // ----+--------------------------+-------------+----------
@@ -853,9 +1008,10 @@ namespace VIC6569
             if ( !PHY0)
             {
 
-                //    GraphicsDataSequencer();
+                GraphicsDataSequencer();
 
             }
+            //GraphicsDataSequencer();
 
             if (_opcycle == 63) {
                 _y++;
