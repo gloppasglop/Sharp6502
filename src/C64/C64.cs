@@ -146,7 +146,7 @@ namespace C64
 
             }
 
-            Vic.GraphicsDataSequencer();
+            //Vic.GraphicsDataSequencer();
             Vic.PHY0 = !Vic.PHY0;
             //if ( !Vic.PHY0)
             //{

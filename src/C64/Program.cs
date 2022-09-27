@@ -74,6 +74,8 @@ namespace C64
         private static LinkedList<string> _DebugExecutionStack;
         private static int _DebugExecutionStackCapacity = 10;
 
+        private static bool _ecm = false;
+
         static void Main(string[] args)
         {
 
@@ -371,6 +373,11 @@ namespace C64
             ImGuiNET.ImGui.Text("Badline: "+c64.Vic._badLine);
             ImGuiNET.ImGui.Text("Displaystate: "+c64.Vic._displayState);
 
+            foreach (uint c in c64.Vic.VideoMatrixLine) {
+                ImGuiNET.ImGui.Text(c.ToString("X2"));
+                ImGuiNET.ImGui.SameLine();
+            }
+
             ImGuiNET.ImGui.End();
         }
         private static unsafe void OnRender(double delta)
@@ -403,6 +410,25 @@ namespace C64
             ImGuiNET.ImGui.Begin("Debug");
             ImGuiNET.ImGui.Text("FPS: "+1/delta);
             ImGuiNET.ImGui.Text("MHz: "+_numberOfTicks/delta/1_000_000);
+
+            var CR2 = c64.Mem.Read(0xD016);
+            if (ImGuiNET.ImGui.RadioButton("MCM ON", (CR2 & 0x10 ) == 0x10 )) { 
+                c64.Mem.Write(0xD016,CR2 | 0x10); 
+            }
+            ImGuiNET.ImGui.SameLine();            
+            if (ImGuiNET.ImGui.RadioButton("MCM OFF", (CR2 & 0x10 ) != 0x10 )) {
+                c64.Mem.Write(0xD016,(uint) (CR2 &  ~0x10) & 0xFF); 
+            };
+
+            var CR1 = c64.Mem.Read(0xD011);
+            if (ImGuiNET.ImGui.RadioButton("BMM ON", (CR1 & 0x20 ) == 0x20 )) { 
+                c64.Mem.Write(0xD011,CR1 | 0x20); 
+            }
+            ImGuiNET.ImGui.SameLine();            
+            if (ImGuiNET.ImGui.RadioButton("BMM OFF", (CR1 & 0x20 ) != 0x20 )) {
+                c64.Mem.Write(0xD011,(uint) (CR1 &  ~0x20) & 0xFF); 
+            };
+
             //DumpState();
             ImGuiNET.ImGui.End();
 
@@ -411,7 +437,7 @@ namespace C64
                 DumpMemory(0xD800,1000,40);
             }
 
-            //DumpVic();
+            DumpVic();
 
             Controller.Render();
 
