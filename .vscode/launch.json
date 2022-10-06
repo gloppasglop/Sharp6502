@@ -4,8 +4,19 @@
    // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
    "version": "0.2.0",
    "configurations": [
+   {
+    "name": "CIA6526",
+    "type": "coreclr",
+    "request": "launch",
+    "preLaunchTask": "build-CIA6526",
+    "program": "${workspaceFolder}/src/CIA6526/bin/Debug/net6.0/CIA6526.dll",
+    "args": [],
+    "cwd": "${workspaceFolder}/src/CIA6526",
+    "stopAtEntry": false,
+    "console": "internalConsole"
+   },
         {
-            "name": ".NET Core Launch (console)",
+            "name": "C64",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",

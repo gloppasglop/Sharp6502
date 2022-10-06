@@ -226,6 +226,9 @@ namespace C64
                 for (int i = 0; i < _numberOfTicks; i++)
 	            {
 		            c64.Tick();
+                    if (c64.Cpu.PC == 0xFF48) {
+                        StepMode = true;
+                    }
                     _DebugExecutionStack.AddFirst(String.Format("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9}", 
                         c64.TickCount,
                         c64.Cpu.AddrPins, 
@@ -278,6 +281,9 @@ namespace C64
         
         private static void DumpState()
 	    {
+
+            ImGuiNET.ImGui.Text($"CIA1 Timer A: {c64.CIA1.TAHI*256 + c64.CIA1.TALO}");
+            ImGuiNET.ImGui.Text($"CIA1 Timer B: {c64.CIA1.TBHI*256 + c64.CIA1.TBLO}");
             foreach (string dbg in _DebugExecutionStack)
             {
                 ImGuiNET.ImGui.Text(dbg);
@@ -380,6 +386,44 @@ namespace C64
 
             ImGuiNET.ImGui.End();
         }
+
+        private static void _displayDebug (double delta) {
+            //TODO:Move this to a Display Debug function
+            var glyphWidth = ((float) ImGuiNET.ImGui.CalcTextSize("F").X) + 1.0f;
+            ImGuiNET.ImGui.Begin("Debug");
+            ImGuiNET.ImGui.Text("FPS: "+1/delta);
+            ImGuiNET.ImGui.Text("MHz: "+_numberOfTicks/delta/1_000_000);
+
+            var CR2 = c64.Mem.Read(0xD016);
+            if (ImGuiNET.ImGui.RadioButton("MCM ON", (CR2 & 0x10 ) == 0x10 )) { 
+                c64.Mem.Write(0xD016,CR2 | 0x10); 
+            }
+            ImGuiNET.ImGui.SameLine();            
+            if (ImGuiNET.ImGui.RadioButton("MCM OFF", (CR2 & 0x10 ) != 0x10 )) {
+                c64.Mem.Write(0xD016,(uint) (CR2 &  ~0x10) & 0xFF); 
+            };
+
+            var CR1 = c64.Mem.Read(0xD011);
+            if (ImGuiNET.ImGui.RadioButton("BMM ON", (CR1 & 0x20 ) == 0x20 )) { 
+                c64.Mem.Write(0xD011,CR1 | 0x20); 
+            }
+            ImGuiNET.ImGui.SameLine();            
+            if (ImGuiNET.ImGui.RadioButton("BMM OFF", (CR1 & 0x20 ) != 0x20 )) {
+                c64.Mem.Write(0xD011,(uint) (CR1 &  ~0x20) & 0xFF); 
+            };
+
+            DumpState();
+            ImGuiNET.ImGui.End();
+
+            if ( _debugDisplayMemory )
+            {
+                DumpMemory(0xDC00,16,16);
+                DumpMemory(0xDD00,16,16);
+            }
+
+            DumpVic();
+
+        }
         private static unsafe void OnRender(double delta)
         {
 
@@ -405,39 +449,7 @@ namespace C64
             */
             Texture.Dispose();
 
-            //TODO:Move this to a Display Debug function
-            var glyphWidth = ((float) ImGuiNET.ImGui.CalcTextSize("F").X) + 1.0f;
-            ImGuiNET.ImGui.Begin("Debug");
-            ImGuiNET.ImGui.Text("FPS: "+1/delta);
-            ImGuiNET.ImGui.Text("MHz: "+_numberOfTicks/delta/1_000_000);
-
-            var CR2 = c64.Mem.Read(0xD016);
-            if (ImGuiNET.ImGui.RadioButton("MCM ON", (CR2 & 0x10 ) == 0x10 )) { 
-                c64.Mem.Write(0xD016,CR2 | 0x10); 
-            }
-            ImGuiNET.ImGui.SameLine();            
-            if (ImGuiNET.ImGui.RadioButton("MCM OFF", (CR2 & 0x10 ) != 0x10 )) {
-                c64.Mem.Write(0xD016,(uint) (CR2 &  ~0x10) & 0xFF); 
-            };
-
-            var CR1 = c64.Mem.Read(0xD011);
-            if (ImGuiNET.ImGui.RadioButton("BMM ON", (CR1 & 0x20 ) == 0x20 )) { 
-                c64.Mem.Write(0xD011,CR1 | 0x20); 
-            }
-            ImGuiNET.ImGui.SameLine();            
-            if (ImGuiNET.ImGui.RadioButton("BMM OFF", (CR1 & 0x20 ) != 0x20 )) {
-                c64.Mem.Write(0xD011,(uint) (CR1 &  ~0x20) & 0xFF); 
-            };
-
-            //DumpState();
-            ImGuiNET.ImGui.End();
-
-            if ( _debugDisplayMemory )
-            {
-                DumpMemory(0xD800,1000,40);
-            }
-
-            DumpVic();
+            _displayDebug(delta);
 
             Controller.Render();
 

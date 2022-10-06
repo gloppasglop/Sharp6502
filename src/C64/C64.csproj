@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\HexParser\HexParser.csproj" />
     <ProjectReference Include="..\vic6569\vic6569.csproj" />
+    <ProjectReference Include="..\CIA6526\CIA6526.csproj" />
   </ItemGroup>
 
   <ItemGroup>

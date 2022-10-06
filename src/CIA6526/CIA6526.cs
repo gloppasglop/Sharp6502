@@ -1,8 +1,7 @@
 ﻿namespace CIA6526;
-public class CIA6526
+public class Chip
 {
 	// http://archive.6502.org/datasheets/mos_6526_cia_recreated.pdf
-
 	public bool TOD { get;set;}
 	// PHY2 Clock
 	public bool PHI2 { get;set;}
@@ -13,6 +12,10 @@ public class CIA6526
 	public bool RW { get;set;}
 	// PC
 	public bool PC { get;set;}
+
+	public bool RES { get; set; }
+
+	public bool IRQ { get; set;}
 
 
 	public uint PortA { get; set; }
@@ -26,37 +29,140 @@ public class CIA6526
 
 	// Registers
 	//PERIPHERAL DATA REGISTER A
-	public uint PRA { get;set;}
+
+	
+	public uint PRA { get; set;}
 	//PERIPHERAL DATA REGISTER B
-	public uint PRB { get;set;}
+	public uint PRB { get; set; }
 	// DATA DIRECTION REG A
-	public uint DDRA { get;set;}
+	public uint DDRA { get; set; }
 	// DATA DIRECTION REG B
-	public uint DDRB { get;set;}
+	public uint DDRB { get; set; }
 	// TIMER A LOW
-	public uint TALO { get;set;}
+	private uint _TALOLATCH;
+	private uint _TALO;
+	public uint TALO { 
+		get
+		{
+			return _TALO;
+		} 
+		set
+		{
+			_TALO = value;
+			_TALOLATCH = value;
+		}
+	}
 	// TIMER A HIGH
-	public uint TAHI { get;set;}
+	private uint _TAHILATCH;
+	private uint _TAHI;
+	public uint TAHI { 
+		get
+		{
+			return _TAHI;
+		} 
+		set
+		{
+			_TAHI = value;
+			_TAHILATCH = value;
+		}
+	}
 	// TIMER B LOW
-	public uint TBLO { get;set;}
+	private uint _TBLO;
+	private uint _TBLOLATCH;
+	public uint TBLO {
+		get
+		{
+			return _TBLO;
+		}
+		set
+		{
+			_TBLO = value;
+			_TBLOLATCH = value;
+		}
+	}
 	// TIMER B HIGH 
-	public uint TBHI { get;set;}
-	// TOD 10TH seconds
-	public uint TOD10TH { get;set;}
+	private uint _TBHI;
+	private uint _TBHILATCH;
+	public uint TBHI {
+		get
+		{
+			return _TBHI;
+		}
+		set
+		{
+			_TBHI = value;
+			_TBHILATCH = value;
+		}
+	}
+	// Read:
+	//Bit 0..3: Tenth seconds in BCD-format ($0-$9)
+	//Bit 4..7: always 0
+	//Writing:
+	//Bit 0..3: if CRB-Bit7=0: Set the tenth seconds in BCD-format
+	//Bit 0..3: if CRB-Bit7=1: Set the tenth seconds of the alarm time in BCD-format
+	public uint TOD10TH { get; set; }
+
 	// TOD Seconds
-	public uint TODSEC { get;set;}
+	//Bit 0..3: Single seconds in BCD-format ($0-$9)
+	//Bit 4..6: Ten seconds in BCD-format ($0-$5)
+	//Bit 7: always 0
+	public uint TODSEC { get; set; }
+
 	// TOD Minutes
-	public uint TODMIN { get;set;}
+	//Bit 0..3: Single minutes in BCD-format ($0-$9)
+	//Bit 4..6: Ten minutes in BCD-format ($0-$5)
+	//Bit 7: always 0
+	public uint TODMIN { get; set; }
+
 	// TOD HOURS AM/PM
-	public uint TODHR { get;set;}
+	// Bit 0..3: Single hours in BCD-format ($0-$9)
+	// Bit 4..6: Ten hours in BCD-format ($0-$5)
+	// Bit 7: Differentiation AM/PM, 0=AM, 1=PM
+	// Writing into this register stops TOD, until register 8 (TOD 10THS) will be read.
+	public uint TODHR { get; set; }
+
 	// SERIAL DATA REGISTER
-	public uint SDR { get;set;}
+	// The byte within this register will be shifted bitwise to or from the SP-pin with every positive slope at the CNT-pin.
+	public uint SDR { get; set; }
+
 	// INTERRUPT CONTROL REGISTER
-	public uint ICR { get;set;}
+	private uint _ICR;
+	public uint ICR {
+		get
+		{
+
+			var tmpICR = _ICR;
+			_ICR = 0;
+			IRQ = false;
+			
+			return tmpICR;
+
+		}
+		set
+		{
+			// When writing to the MASK
+			// register, if bit 7 (SET/CLEAR) of data written is a
+			// ZERO, any mask bit written with a on will be
+			// cleared, while those mask bits written with a zero
+			// will be unaffected. If bit 7 of the data written is a
+			// ONE, any mask bit written with a one will be set,
+			// while those mask bits written with a zero will be
+			// unaffected
+			if ( (value & 0b1000_0000) == 0b1000_0000) {
+				_ICR |= value;
+			} else {
+				_ICR = _ICR & (~value & 0xFF);
+
+			}
+			_ICR = value;
+		}
+	}
+
 	// CONTROL REG A
-	public uint CRA { get;set;}
+	public uint CRA { get; set; }
+
 	// CONTROL REG B
-	public uint CRB { get;set;}
+	public uint CRB { get; set; }
 
 	private uint _readRegister() {
 		// return register value based on RS flags
@@ -230,8 +336,107 @@ public class CIA6526
 
 	}
 
+	public void Init() {
+		// /RES - Reset Input
+		// A low on the /RES pin resets all internal registers.
+		// The port pins are set as inputs and port registers to
+		// zero (although a read of the ports will return all high
+		// because of passive pullups). The timer control
+		// registers are set to zero and the timer latches to all
+		// ones. All other registers are reset to zero.
+
+		PRA = 0;
+		PRB = 0;
+		DDRA = 0;
+		DDRB = 0;
+		TALO = 0;
+		_TALOLATCH = 0xFF;
+		TAHI = 0;
+		_TAHILATCH = 0xFF;
+		TBHI = 0;
+		_TBHILATCH = 0xFF;
+		TBLO = 0;
+		_TBLOLATCH = 0xFF;
+		TOD10TH = 0;
+		TODHR = 0;
+		TODSEC = 0;
+		TODMIN = 0;
+		SDR = 0;
+		ICR = 0;
+		CRA = 0;
+		CRB = 0;
+
+	}
 	public void Tick()
 	{
+
+		if ( PHI2) {
+			// The /CS input controls the activity of the 6526. A
+			// low level on /CS while phi2 is high causes the
+			// device to respond to signals on the R/W and
+			// address (RSx) lines. A high on /CS prevents these
+			// lines from controlling the 6526. The /CS line is
+			// normally activated (low)
+
+			// The R/W signal is normally supplied by the
+			// microprocessor and controls the direction of data &
+			// transfers of the 6526. A high on R/W indicates a
+			// read (data transfer out of the 6526), while a low B
+			// indicates a write (data transfer into the 6526).
+			if (RW & CS) {
+				// READ (means we need to put data on data pins to be read)
+				DataPins = _readRegister();	
+
+			}
+			if ((!RW) & CS) {
+				// WRITE
+				_writeRegister(DataPins);	
+
+			}
+
+			if ( (CRA & 0x01) == 0x01) {
+				if (_TALO == 0) {
+					if (_TAHI > 0) {
+						_TALO = 0xFF;
+						_TAHI -= 1;
+					} else {
+						// We reached 0
+
+						// Reload with Latched value
+						TALO = _TALOLATCH;
+						TAHI = _TAHILATCH;
+						
+						// Set the Interrup control register bit
+						var tmpICR = _ICR;
+						_ICR |= 0b0000_0001;
+						if ((tmpICR & 0b0000_0001) == 0b0000_0001) {
+							_ICR |= 0b1000_0000;	
+							IRQ = true;
+						}
+
+					}
+				} else {
+					_TALO -= 1;
+				}
+
+			}
+			if ( (CRB & 0x01) == 0x01) {
+				if (_TBLO == 0) {
+					_TBLO = 0xFF;
+					if (_TBHI > 0) {
+						_TBHI -= 1;
+					} else {
+						_TBHI = 0xFF;
+					}
+				} else {
+					_TBLO -= 1;
+				}
+			}
+
+
+		}
+		if ( ! RES) {
+		}
 
 	}
 
