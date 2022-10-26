@@ -256,8 +256,8 @@ namespace C6502.Tests
             //    Adr Low
             //    Addr High
             Assert.Equal(cpuCopy.P |(uint) StatusFlagsMask.B | (uint) StatusFlagsMask.X,testComputer.mem.Read(0x100+S-2));
-            Assert.Equal((startAddr +2 ) & 0xFF,testComputer.mem.Read(0x100+S-1));
-            Assert.Equal((startAddr+2) >> 8,testComputer.mem.Read(0x100+S));
+            Assert.Equal((startAddr ) & 0xFF,testComputer.mem.Read(0x100+S-1));
+            Assert.Equal((startAddr) >> 8,testComputer.mem.Read(0x100+S));
             Assert.Equal(addr,testComputer.cpu.PC);
             Assert.Equal(addr,testComputer.cpu.AddrPins);
         }
