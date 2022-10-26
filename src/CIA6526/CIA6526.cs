@@ -1,11 +1,24 @@
-﻿namespace CIA6526;
+﻿using System;
+using System.IO;
+namespace CIA6526;
 public class Chip
 {
 	// http://archive.6502.org/datasheets/mos_6526_cia_recreated.pdf
 	public bool TOD { get;set;}
 	// PHY2 Clock
 	public bool PHI2 { get;set;}
-	public bool CNT { get;set;}
+	private bool _CNT;
+	private bool _CNT_POSITIVE_TRANSITION = false;
+	public bool CNT {
+		get {
+			return _CNT;
+		}
+		set {
+			// Track positive CNT transition
+			_CNT_POSITIVE_TRANSITION = (value) && (! _CNT);
+			_CNT = value;
+		}
+	}
 	// Chip Select
 	public bool CS { get;set;}
 	// Rewa/Write
@@ -367,6 +380,27 @@ public class Chip
 		CRB = 0;
 
 	}
+	// TODO:
+	//	Input Mode:
+	// 	  Control bits allow selection of the clock used to
+	// 	  decrement the timer. TIMER A can count phi2 clock
+	// 	  pulses or external pulses applied to the CNT pin.
+	// 	  TIMER B can count phi2 pulses, external CNT
+	// 	  pulses, TIMER A underflow pulses or TIMER A
+	// 	  underflow pulses while the CNT pin is held high.
+	//    	  The timer latch is loaded into the timer on any
+	// 	  timer underflow, on a force load or following a write
+	//   	  to the high byte of the prescaler while the timer is
+	// 	  stopped. If the timer is running, a write to the high
+	// 	  byte will load the timer latch, but not reload the
+	// 	  counter.
+	//	Handshaking
+	//	Forceload
+	//	PB ON/OFF
+	//	Toggle/PULSE
+	//	SDR
+	//	TOD
+	//	I/O Ports PRA/PRB/DDRA/DDRB
 	public void Tick()
 	{
 
@@ -394,7 +428,13 @@ public class Chip
 
 			}
 
-			if ( (CRA & 0x01) == 0x01) {
+		}
+		
+		// TIMER A Started
+		// Only increment if INNMODE = 0 or (INNMODE=1 and positive CNT transition)
+		if ( ( (CRA & 0b0000_0001) == 0b0000_0001) ) {
+			if ( ((CRA & 0b0010_0000) == 0) || (((CRA & 0b0010_0000) == 0b0010_0000) && _CNT_POSITIVE_TRANSITION))
+			{
 				if (_TALO == 0) {
 					if (_TAHI > 0) {
 						_TALO = 0xFF;
@@ -405,6 +445,7 @@ public class Chip
 						// Reload with Latched value
 						TALO = _TALOLATCH;
 						TAHI = _TAHILATCH;
+						// Console.WriteLine("BIPA");
 						
 						// Set the Interrup control register bit
 						var tmpICR = _ICR;
@@ -414,27 +455,62 @@ public class Chip
 							IRQ = true;
 						}
 
+						// If ONE SHOT Mode, stop the timer
+						if (( (CRA & 0b0000_1000) == 0b0000_1000)) {
+							Console.WriteLine("ONESHOT");
+							CRA &= ((uint) ~0b0000_0001u) & 0xFF;
+						}
+
 					}
 				} else {
 					_TALO -= 1;
 				}
-
 			}
-			if ( (CRB & 0x01) == 0x01) {
+
+		}
+
+		// PBON
+		if (( (CRA & 0b0000_0010) == 0b0000_0010)) {
+			Console.WriteLine("TIMERA PBON Not implemented");
+		}
+		if (( (CRB & 0b0000_0001) == 0b0000_0001)) {
+			if ( ((CRB & 0b0010_0000) == 0) || (((CRB & 0b0010_0000) == 0b0010_0000) && _CNT_POSITIVE_TRANSITION))
+			{
 				if (_TBLO == 0) {
-					_TBLO = 0xFF;
 					if (_TBHI > 0) {
+						_TBLO = 0xFF;
 						_TBHI -= 1;
 					} else {
-						_TBHI = 0xFF;
+						// We reached 0
+
+						// Reload with Latched value
+						TBLO = _TBLOLATCH;
+						TBHI = _TBHILATCH;
+						// Console.WriteLine("BIPB");
+						
+						// Set the Interrup control register bit
+						var tmpICR = _ICR;
+						_ICR |= 0b0000_0001;
+						if ((tmpICR & 0b0000_0010) == 0b0000_0010) {
+							_ICR |= 0b1000_0000;	
+							IRQ = true;
+						}
+						// If ONE SHOT Mode, stop the timer
+						if (( (CRB & 0b0000_1000) == 0b0000_1000)) {
+							Console.WriteLine("ONESHOT");
+							CRB &= ((uint) ~0b0000_0001u) & 0xFF;
+						}
+
 					}
 				} else {
 					_TBLO -= 1;
 				}
 			}
-
-
 		}
+		if (( (CRB & 0b0000_0010) == 0b0000_0010)) {
+			Console.WriteLine("TIMERB PBON Not implemented");
+		}
+
 		if ( ! RES) {
 		}
 
