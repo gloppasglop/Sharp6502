@@ -75,7 +75,17 @@ namespace C6502
         public uint Y { get => _Y; set => _Y = value & 0xFF;}
 
         // Stack pointer
-        public uint S { get => _S; set => _S = value & 0xFF;}
+        //public uint S { get => _S; set => _S = value & 0xFF;}
+        public uint S {
+            get => _S;
+            set
+            {
+                if (value == 0  || value == 0x100) {
+
+                }
+                _S = value & 0xFF;
+            }
+        }
 
         // Procesor status
         public uint P { get => _P; set => _P = value ;}
@@ -108,12 +118,13 @@ namespace C6502
 
         public uint BrkFlag { get; set;}
 
+        private bool _processing = false;
  
 
         private void Init() {
             SYNC = true;
             RW = true;
-            RES = true;
+            RES = false;
             BrkFlag = 0;
             AddrPins = 0x0000;
             // DataPins = 0xA9;
@@ -314,7 +325,9 @@ namespace C6502
             instructionSet.Add(0x20,new JSR{ Opcode = 0x20,AddressingMode = addressingModes.ABSOLUTE_R});
             instructionSet.Add(0x60,new RTS{ Opcode = 0x60,AddressingMode = addressingModes.IMPLIED});
             instructionSet.Add(0x40,new RTI{ Opcode = 0x40,AddressingMode = addressingModes.IMPLIED});
-            instructionSet.Add(0x00,new RTI{ Opcode = 0x00,AddressingMode = addressingModes.IMPLIED});
+            instructionSet.Add(0x00,new BRK{ Opcode = 0x00,AddressingMode = addressingModes.IMPLIED});
+            // Dummy IRQ
+            //instructionSet.Add(0x100,new IRQ{ Opcode = 0x100,AddressingMode = addressingModes.IMPLIED});
 
             instructionSet.Add(0x08,new PHP{ Opcode = 0x08,AddressingMode = addressingModes.IMPLIED});
             instructionSet.Add(0x48,new PHA{ Opcode = 0x48,AddressingMode = addressingModes.IMPLIED});
@@ -346,7 +359,7 @@ namespace C6502
                 try {
                     IR = instructionSet[DataPins];
                 }
-                catch (KeyNotFoundException){
+                catch (KeyNotFoundException) {
                     throw new System.InvalidOperationException(String.Format("Unhandled opcode {0,2:X2}",DataPins));
                 }
                 SYNC = false;
@@ -357,18 +370,24 @@ namespace C6502
 
                 if (IRQ && (( P & (uint) StatusFlagsMask.I) == 0) ) {
                     BrkFlag |= (uint) BrkFlagsMask.IRQ;                    
+                    IR = instructionSet[0x00];
                 }
 
                 // TODO NMI
 
                 if (BrkFlag != 0 ) {
                     IR = instructionSet[0x00];
-                    P &= (uint) ~StatusFlagsMask.B ;
+                    //P &= (uint) ~StatusFlagsMask.B ;
+                    //P |= (uint) StatusFlagsMask.I;
                     RES = false;
                 }
             }
             addressing = IR.AddressingMode;
             opcode = IR.Opcode;
+
+            if ( opcode == 0x6C) {
+
+            }
             RW = true;
             switch (opcode) {
                 // Special cases for
@@ -431,7 +450,7 @@ namespace C6502
                     }
                     break;
                 }
-                //BRK
+                //BRK and IRQ
                 case 0x00: {
                     switch(_opcycle) {
                     
@@ -445,21 +464,27 @@ namespace C6502
                         case 1: {
                             PC++;
                             AddrPins = 0x100+_tmp_stack;
-                            DataPins = PC >> 8;
-                            _tmp_stack--;
+                            DataPins = (PC-2) >> 8;
                             // If reset do not write to stack
-                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) == 0) {
+                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) != 0) {
+                            } else {
+                                _tmp_stack--;
                                 RW = false;
                             }
                             break;
                         }
 
                         case 2: {
+                            // FIXME - Not sure correct
+                            //PC++;
+                            // End FIXME
                             AddrPins = 0x100+_tmp_stack;
-                            DataPins = PC & 0xFF;
-                            _tmp_stack--;
-                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) == 0) {
+                            //DataPins = (PC) & 0xFF;
+                            DataPins = (PC-2) & 0xFF;
+                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) != 0) {
+                            } else {
                                 RW = false;
+                                _tmp_stack--;
                             }
                             break;
                         }
@@ -476,10 +501,12 @@ namespace C6502
                             P |= (uint) StatusFlagsMask.X;
                             //P |= (uint) StatusFlagsMask.I;
                             DataPins = P;
-                            _tmp_stack--;
                             // Only write if not RESET
-                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) == 0) {
+                            if ( (BrkFlag & (uint) BrkFlagsMask.RESET) != 0) {
+                            } else {
+                                P |= (uint) StatusFlagsMask.I;
                                 RW = false;
+                                _tmp_stack--;
                             }
                             break;
                         }

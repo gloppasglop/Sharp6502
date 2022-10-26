@@ -3,6 +3,7 @@ using System;
 
 namespace VIC6569
 {
+    /*
     public class VicRegister {
         public string Name { get; set; }
         public uint Address { get; set; }
@@ -16,6 +17,7 @@ namespace VIC6569
         }
 
     }
+    */
     public class Chip
     {
 
@@ -443,6 +445,11 @@ namespace VIC6569
                     Console.WriteLine($"Unhandled mode: CR1: {CR1}, CR2: {CR2}");
                     break;
             } 
+
+            if ( ! _displayState) {
+                _color = 0;
+                VideoMatrixLine[_VMLI] = 0;
+            }
             
 
 
@@ -485,10 +492,12 @@ namespace VIC6569
                 // $3fff ($39ff when the ECM bit in register $d016 is set
                 if ( (CR1 & 0x40) == 0) {
                     AddrPins = 0x3FFF;
-                    _sequencer = 0;
+                    DataPins = _fetchMemory(AddrPins) ;
+                    _sequencer = DataPins;
                 } else {
                     AddrPins = 0x39FF;
-                    _sequencer = 0;
+                    DataPins = _fetchMemory(AddrPins) ;
+                    _sequencer = DataPins;
                 }
             }
 
@@ -518,43 +527,28 @@ namespace VIC6569
             }
         }
 
+        private byte[][] _colorPalette = new byte[16][]{
+            new byte[3]{0x00, 0x00, 0x00},
+            new byte[3]{0xFF, 0xFF, 0xFF},
+            new byte[3]{0x68, 0x37, 0x2B},
+            new byte[3]{0x70, 0xA4, 0xB2},
+            new byte[3]{0x6F, 0x3D, 0x86},
+            new byte[3]{0x58, 0x8D, 0x43},
+            new byte[3]{0x35, 0x28, 0x79},
+            new byte[3]{0xB8, 0xC7, 0x6F},
+            new byte[3]{0x6F, 0x4F, 0x25},
+            new byte[3]{0x43, 0x39, 0x00},
+            new byte[3]{0x9A, 0x67, 0x59},
+            new byte[3]{0x44, 0x44, 0x44},
+            new byte[3]{0x6C, 0x6C, 0x6C},
+            new byte[3]{0x9A, 0xD2, 0x84},
+            new byte[3]{0x6c, 0x5e, 0xb5},
+            new byte[3]{0x95, 0x95, 0x95},
+        };
+
         private (byte,byte,byte)  _getColorPalette(uint  color) {
 
-            switch(color) {
-                case 0:
-                    return (0x00,0x00,0x00);
-                case 1:
-                    return (0xFF, 0xFF, 0xFF);
-                case 2:
-                    return (0x68, 0x37, 0x2B );
-                case 3:
-                    return (0x70, 0xA4, 0xB2);
-                case 4:
-                    return (0x6F, 0x3D, 0x86);
-                case 5:
-                    return (0x58, 0x8D, 0x43);
-                case 6:
-                    return (0x35, 0x28, 0x79);
-                case 7:
-                    return (0xB8, 0xC7, 0x6F);
-                case 8:
-                    return (0x6F, 0x4F, 0x25);
-                case 9:
-                    return (0x43, 0x39, 0x00);
-                case 10:
-                    return (0x9A, 0x67, 0x59);
-                case 11:
-                    return (0x44, 0x44, 0x44);
-                case 12:
-                    return (0x6C, 0x6C, 0x6C);
-                case 13:
-                    return (0x9A, 0xD2, 0x84);
-                case 14:
-                    return (0x6c, 0x5e,0xb5);
-                case 15:
-                    return (0x95, 0x95, 0x95);
-            }
-            return (0,0,0);
+            return (_colorPalette[color][0],_colorPalette[color][1],_colorPalette[color][2]);
 
         }
         public void GraphicsDataSequencer() {
@@ -565,8 +559,8 @@ namespace VIC6569
 
             for (var px = 0; px < 8; px++)
             {
-                var single_pixel_value = (_sequencer & (0b1  << (7-px))) >> (7-px);
-                var double_pixel_value = (_sequencer & (0b11 << (6-2*(px/2)))) >> (6-2*(px/2));
+                var single_pixel_value = (byte)  ((_sequencer & (0b1  << (7-px))) >> (7-px));
+                var double_pixel_value =  (byte) (_sequencer & (0b11 << (6-2*(px/2)))) >> (6-2*(px/2));
 
 
                 if (_x == _lastXCoord)
@@ -596,7 +590,6 @@ namespace VIC6569
                         case 0x0:
                             // For standard Text Mode
                             //    Each bit is a pixel
-                            //if ( ( (_sequencer & (1 << (7-px))  & 0x80) == 0x80 )
                             if ( single_pixel_value == 1 )
                             {
                                 (red, green ,blue) = _getColorPalette(_color);
@@ -606,6 +599,7 @@ namespace VIC6569
                                 (red,green,blue) = _getColorPalette(B0C);
 
                             }
+
                             break;
                         case 0x1:
                             // Multicolor text mode
@@ -684,7 +678,7 @@ namespace VIC6569
                             // | "11": Color from bits 8-11 of c-data  |
                             //  +---------------------------------------+
 
-			                if ( px % 2 == 0) {
+			                if ( (px & 1) == 0) {
                                 if ( double_pixel_value == 0b11 )
                                 {
                                     (red, green ,blue) = _getColorPalette(_color & 0x7);
@@ -706,7 +700,34 @@ namespace VIC6569
                     }
                     if ( !(_displayState) )
                     {
-                        (red,green,blue) = (0xFF, 0x00, 0x00);
+                        switch(_graphicMode()) {
+                            case 0x0:
+                            case 0x1:
+                            case 0x4:
+                                if (single_pixel_value == 1) {
+                                    (red,green,blue) = (0x00, 0x00, 0x00);
+                                } else {
+                                    (red,green,blue) = _getColorPalette(B0C);
+                                } 
+                                break;
+                            case 0x2:
+                            case 0x1|0x4:
+                            case 0x2|0x4:
+                                (red,green,blue) = (0x00, 0x00, 0x00);
+                                break;
+                            case 0x1|0x2:
+                                if ( double_pixel_value == 0) {
+                                    (red,green,blue) = _getColorPalette(B0C);
+                                } else {
+                                    (red,green,blue) = (0x00, 0x00, 0x00);
+                                }
+                                break;
+                            default:
+                                (red,green,blue) = (0x00, 0x00, 0x00);
+                                break;
+
+                        }
+
                     }
 
                 } else {

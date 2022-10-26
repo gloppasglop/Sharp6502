@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using HexParser;
 using C6502;
+using CIA6526;
 
 namespace C64
 {
@@ -15,6 +16,8 @@ namespace C64
         public Memory Mem {get; set;}
         public Cpu Cpu { get; set; }
         public VIC6569.Chip Vic { get; set; }
+        public CIA6526.Chip CIA1 { get; set; }
+        public CIA6526.Chip CIA2 { get; set; }
     	public ulong TickCount {get;private set;}
 
 	    public Boolean Debug = true;
@@ -23,6 +26,24 @@ namespace C64
         {
 		    return Vic.Screen;
 	    }
+
+        static void DumpState(ulong tick, Cpu cpu) {
+            Console.WriteLine("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9} {12,6}", 
+                        tick,
+                        cpu.AddrPins, 
+                        cpu.DataPins, 
+                        cpu.RW,
+                        cpu.PC,
+                        cpu.A,
+                        cpu.X,
+                        cpu.Y,
+                        cpu.S,
+                        Convert.ToString(cpu.P,2).PadLeft(8,'0'),
+                        cpu.IR?.Opcode,
+                        cpu._opcycle,
+                        cpu.IRQ
+                    );
+        }
 
     	public Computer(string kernalPath, string basicPath, string chargenPath)
     	{
@@ -53,6 +74,11 @@ namespace C64
 
             Cpu = new Cpu(Mem);
             Vic = new VIC6569.Chip(0,Mem);
+            CIA1 = new CIA6526.Chip();
+            CIA1.Init();
+
+            CIA2 = new CIA6526.Chip();
+            CIA2.Init();
             
             Cpu.PC = 0x0400;
             Cpu.AddrPins = Cpu.PC;
@@ -83,11 +109,13 @@ namespace C64
 
     	public void Tick()
 	    {
+            if ( (TickCount % 1_000_000U) == 0) {
+                Console.WriteLine("TIC");
+            }
             if ((TickCount %2) == 0)
 		    {
                     //Console.WriteLine("------ Half Cyle : {0,20} ------", tick/2);
             }
-
             Cpu.RDY = Vic.BA;
             Cpu.PHY2 = Vic.PHY0;
             Cpu.AEC = Vic.AEC;
@@ -98,36 +126,8 @@ namespace C64
 			    // return
                 if ( Cpu.RDY || !Cpu.RW )
 		        {
-				    //Console.WriteLine("CPU: {0,2} {1}",cpu._opcycle,vic.PHY0);
-				    // 6502 Access
 				    Cpu.Tick();
 
-				    if (Debug)
-				    {
-
-				    }
-				
-				    var breakPoint = 0xE5CD; // Wait for a key press
-				    //breakPoint = 0xE422; // BASIC POWERUP MESSAGE
-				    // breakPoint = 0xFF5B; // CINIT
-				    // breakPoint = 0xFD52; // RAMTAS
-				    // breakPoint = 0xEA12; // End of clear screen 
-				    //breakPoint = 0xE564; // Memory TEST
-				    if (Cpu.PC == breakPoint )
-				    {
-				        /* Console.WriteLine("DEBUG");  
-				        for (int y=0; y<25; y++) {
-				    	    for (int x=0; x<40;x++) {
-				        	Console.Write("{0,2:X2} ", mem.Read( (uint) (1024+x+40*y)));
-				        	}
-				        	Console.WriteLine();
-				        }
-				        */
-
-        				//WriteBitmapToPPM("test.ppm", 504,312, Vic.Screen);
-        				//Debug = true;                
-        				//break;
-    				}
                 }
 
             var previousPC = Cpu.PC;
@@ -145,6 +145,47 @@ namespace C64
                 //vic.WriteRegistersToMem(mem);
 
             }
+
+
+            CIA1.PHI2 = Cpu.PHY2;
+            CIA1.RW = Cpu.RW;
+            CIA1.RS = Cpu.AddrPins & 0x000F;
+            CIA1.CS = (Cpu.AddrPins & 0xFF00) == 0xDC00;
+
+            CIA2.PHI2 = Cpu.PHY2;
+            CIA2.RW = Cpu.RW;
+            CIA2.RS = Cpu.AddrPins & 0x000F;
+            CIA2.CS = (Cpu.AddrPins & 0xFF00) == 0xDD00;
+
+            if (Cpu.RW) {
+                CIA1.Tick(); 
+                if (CIA1.CS) { 
+                    Cpu.mem.Write(0xDC00 | CIA1.RS, CIA1.DataPins);
+                }
+            } else {
+                if (CIA1.CS) {
+                    CIA1.DataPins = Cpu.mem.Read(0xDC00 | CIA1.RS);
+                }
+                CIA1.Tick(); 
+            }
+            Cpu.IRQ = CIA1.IRQ;
+
+            if (Cpu.RW) {
+                CIA2.Tick(); 
+                if (CIA2.CS) { 
+                    Cpu.mem.Write(0xDD00 | CIA2.RS, CIA2.DataPins);
+                }
+            } else {
+                if (CIA2.CS) {
+                    CIA2.DataPins = Cpu.mem.Read(0xDD00 | CIA2.RS);
+                }
+                CIA2.Tick(); 
+            }
+
+            if (Debug) {
+                DumpState(TickCount, Cpu);
+            }
+
 
             //Vic.GraphicsDataSequencer();
             Vic.PHY0 = !Vic.PHY0;

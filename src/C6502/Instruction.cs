@@ -58,6 +58,7 @@ namespace C6502
     public class RTS : Instruction { }
 
     public class RTI : Instruction { }
+    public class BRK : Instruction { }
 
     public class JSR : Instruction { }
    
