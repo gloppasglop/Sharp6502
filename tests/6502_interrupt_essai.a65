@@ -1,0 +1,81 @@
+;
+; 6 5 0 2   I N T E R R U P T   T E S T
+;
+;configure memory - try to stay away from memory used by the system
+;zero_page memory start address, 6 consecutive Bytes required
+zero_page = $a  
+
+;data_segment memory start address, 4 consecutive Bytes required
+data_segment = $200  
+
+;code_segment memory start address
+code_segment = $400
+
+        org zero_page
+;BRK, IRQ, NMI test interrupt save
+zpt
+irq_a   ds  1               ;a register
+irq_x   ds  1               ;x register
+irq_f   ds  1               ;flags
+nmi_a   ds  1               ;a register
+nmi_x   ds  1               ;x register
+nmi_f   ds  1               ;flags
+zp_bss
+
+        org data_segment
+
+irq_count   ds  1           ;separation-1 = instructions between interrupts
+nmi_count   ds  1           ;separation-1 = instructions between interrupts
+res_count   ds  1           ;separation-1 = instructions between interrupts
+I_src       ds  1           ;bit: 0=BRK, 1=IRQ, 2=NMI
+
+        org code_segment
+
+start   cld
+loop    ldx #0
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        jmp loop
+
+nmi_trap
+        php
+	nop
+        inc nmi_count
+	nop
+        plp             ;should be reversed by rti
+        rti
+
+res_trap
+        php
+	nop
+        inc res_count
+	nop
+        plp             ;should be reversed by rti
+        rti
+        
+        
+
+irq_trap                ;BRK & IRQ test
+        php
+	nop
+        inc irq_count
+	nop
+        plp             ;should be reversed by rti
+        rti
+        
+;system vectors
+        org $fffa
+        dw  nmi_trap
+        dw  res_trap
+        dw  irq_trap
+
