@@ -4,17 +4,17 @@
    // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
    "version": "0.2.0",
    "configurations": [
-   {
-    "name": "CIA6526",
-    "type": "coreclr",
-    "request": "launch",
-    "preLaunchTask": "build-CIA6526",
-    "program": "${workspaceFolder}/src/CIA6526/bin/Debug/net6.0/CIA6526.dll",
-    "args": [],
-    "cwd": "${workspaceFolder}/src/CIA6526",
-    "stopAtEntry": false,
-    "console": "internalConsole"
-   },
+        {
+            "name": "CIA6526",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-CIA6526",
+            "program": "${workspaceFolder}/src/CIA6526/bin/Debug/net6.0/CIA6526.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/CIA6526",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
         {
             "name": "C64",
             "type": "coreclr",
@@ -29,6 +29,19 @@
             "stopAtEntry": false
         },
         {
+            "name": "C6502Test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-C6502Test",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/tests/bin/Debug/net6.0/tests.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/tests",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",
@@ -36,3 +49,4 @@
         }
     ]
 }
+
