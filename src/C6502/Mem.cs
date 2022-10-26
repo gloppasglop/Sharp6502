@@ -32,6 +32,7 @@ namespace C6502
         public BankZone[] BankZones {get; set;}
 
         private BankZone[] MemoryMapping;
+        public int BankMode {get;set;} = 31;
 
         public void ConfigureBanks(int mode) {
 
@@ -545,7 +546,7 @@ namespace C6502
 
         // TODO : Configure based on PLA Latch Bits
         // https://www.c64-wiki.com/wiki/Bank_Switching
-        ConfigureBanks(31);
+        ConfigureBanks(BankMode);
         
         }
 

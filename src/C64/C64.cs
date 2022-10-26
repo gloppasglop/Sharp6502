@@ -27,6 +27,24 @@ namespace C64
 		    return Vic.Screen;
 	    }
 
+        static void DumpState(ulong tick, Cpu cpu) {
+            Console.WriteLine("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9} {12,6}", 
+                        tick,
+                        cpu.AddrPins, 
+                        cpu.DataPins, 
+                        cpu.RW,
+                        cpu.PC,
+                        cpu.A,
+                        cpu.X,
+                        cpu.Y,
+                        cpu.S,
+                        Convert.ToString(cpu.P,2).PadLeft(8,'0'),
+                        cpu.IR?.Opcode,
+                        cpu._opcycle,
+                        cpu.IRQ
+                    );
+        }
+
     	public Computer(string kernalPath, string basicPath, string chargenPath)
     	{
             uint breakPoint = 0x10000;
@@ -91,11 +109,13 @@ namespace C64
 
     	public void Tick()
 	    {
+            if ( (TickCount % 1_000_000U) == 0) {
+                Console.WriteLine("TIC");
+            }
             if ((TickCount %2) == 0)
 		    {
                     //Console.WriteLine("------ Half Cyle : {0,20} ------", tick/2);
             }
-
             Cpu.RDY = Vic.BA;
             Cpu.PHY2 = Vic.PHY0;
             Cpu.AEC = Vic.AEC;
@@ -148,7 +168,7 @@ namespace C64
                 }
                 CIA1.Tick(); 
             }
-
+            Cpu.IRQ = CIA1.IRQ;
 
             if (Cpu.RW) {
                 CIA2.Tick(); 
@@ -162,7 +182,9 @@ namespace C64
                 CIA2.Tick(); 
             }
 
-            Cpu.IRQ = CIA1.IRQ;
+            if (Debug) {
+                DumpState(TickCount, Cpu);
+            }
 
 
             //Vic.GraphicsDataSequencer();

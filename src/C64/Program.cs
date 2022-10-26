@@ -72,7 +72,7 @@ namespace C64
         private static bool _debugDisplayMemory = false;
 
         private static LinkedList<string> _DebugExecutionStack;
-        private static int _DebugExecutionStackCapacity = 10;
+        private static int _DebugExecutionStackCapacity = 30;
 
         private static bool _ecm = false;
 
@@ -225,11 +225,14 @@ namespace C64
             {
                 for (int i = 0; i < _numberOfTicks; i++)
 	            {
-		            c64.Tick();
-                    if (c64.Cpu.PC == 0xFF48) {
+                    try {
+		                c64.Tick();
+                    }
+                    catch {
                         StepMode = true;
                     }
-                    _DebugExecutionStack.AddFirst(String.Format("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9}", 
+                    /*
+                    _DebugExecutionStack.AddFirst(String.Format("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9} {12}", 
                         c64.TickCount,
                         c64.Cpu.AddrPins, 
                         c64.Cpu.DataPins, 
@@ -241,18 +244,20 @@ namespace C64
                         c64.Cpu.S,
                         Convert.ToString(c64.Cpu.P,2).PadLeft(8,'0'),
                         c64.Cpu.IR?.Opcode,
-                        c64.Cpu._opcycle
+                        c64.Cpu._opcycle,
+                        c64.Cpu.IRQ
                     ));
 
                     // TODO: Should I put this in C64 class
                     _DebugExecutionStack.RemoveLast();
+                    */
 
 	            }
             } else  {
                 if (NextStep)
                 {
 		            c64.Tick();
-                    _DebugExecutionStack.AddFirst(String.Format("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9}", 
+                    _DebugExecutionStack.AddFirst(String.Format("{0,20} {11,1} {10,2:X2} {1,8:X4} {2,4:X2} {3,2} {4,6:X4} {5,4:X2} {6,4:X2} {7,4:X2} {8,4:X2} {9}, {12,4}", 
                         c64.TickCount,
                         c64.Cpu.AddrPins, 
                         c64.Cpu.DataPins, 
@@ -264,7 +269,8 @@ namespace C64
                         c64.Cpu.S,
                         Convert.ToString(c64.Cpu.P,2).PadLeft(8,'0'),
                         c64.Cpu.IR?.Opcode,
-                        c64.Cpu._opcycle
+                        c64.Cpu._opcycle,
+                        c64.Cpu.IRQ
                     ));
                     _DebugExecutionStack.RemoveLast();
                     NextStep = false;
@@ -299,6 +305,9 @@ namespace C64
                 {
                     ImGuiNET.ImGui.SameLine();
 
+                } else {
+                    ImGuiNET.ImGui.Text(String.Format("${0,4:X4}",address+i));
+                    ImGuiNET.ImGui.SameLine();
                 }
                 ImGuiNET.ImGui.Text(String.Format("{0,2:X2}",c64.Mem.Read(address+i)));
             }
@@ -419,6 +428,10 @@ namespace C64
             {
                 DumpMemory(0xDC00,16,16);
                 DumpMemory(0xDD00,16,16);
+
+                DumpMemory(0x0200,10,1);
+                DumpMemory(0x0300,32,2);
+
             }
 
             DumpVic();
