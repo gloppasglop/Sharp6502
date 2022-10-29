@@ -44,9 +44,27 @@ public class Chip
 	//PERIPHERAL DATA REGISTER A
 
 	
-	public uint PRA { get; set;}
+	public uint PRA {
+		get {
+			// Returns what is on PortA whatever the value of DDRA
+			return PortA;
+		}
+		set {
+			// Only write bits if corresponding DDRA bit is set
+			PortA = value | (PortA & (~DDRA & 0xFF));
+		}
+	}
 	//PERIPHERAL DATA REGISTER B
-	public uint PRB { get; set; }
+	public uint PRB {
+		get {
+			// Returns what is on PortA whatever the value of DDRA
+			return PortB;
+		}
+		set {
+			// Only write bits if corresponding DDRA bit is set
+			PortB = value | (PortB & (~DDRB & 0xFF));
+		}
+	}
 	// DATA DIRECTION REG A
 	public uint DDRA { get; set; }
 	// DATA DIRECTION REG B
@@ -144,8 +162,14 @@ public class Chip
 		get
 		{
 
+			// The interrupt DATA register is
+			// cleared and the /IRQ line returns high following a
+			// read of the DATA register
 			var tmpICR = _ICR;
-			_ICR = 0;
+			// Not clear if we should reset the whole register to 0
+			// or only bit 7 (IR bit)
+			//_ICR = 0;
+			_ICR &= 0b0111_1111;
 			IRQ = false;
 			
 			return tmpICR;
@@ -163,11 +187,12 @@ public class Chip
 			// unaffected
 			if ( (value & 0b1000_0000) == 0b1000_0000) {
 				_ICR |= value;
+				//PortA = value | (PortA & (~DDRA & 0xFF));
 			} else {
 				_ICR = _ICR & (~value & 0xFF);
 
 			}
-			_ICR = value;
+			//_ICR = value;
 		}
 	}
 
@@ -432,6 +457,9 @@ public class Chip
 		
 		// TIMER A Started
 		// Only increment if INNMODE = 0 or (INNMODE=1 and positive CNT transition)
+		// TODO: Shouldn't we delay by one PHY2!! 
+		//       Because now time starts in the exact same cycle as when writing
+		//       to the CRA register 
 		if ( ( (CRA & 0b0000_0001) == 0b0000_0001) ) {
 			if ( ((CRA & 0b0010_0000) == 0) || (((CRA & 0b0010_0000) == 0b0010_0000) && _CNT_POSITIVE_TRANSITION))
 			{
@@ -458,7 +486,7 @@ public class Chip
 						// If ONE SHOT Mode, stop the timer
 						if (( (CRA & 0b0000_1000) == 0b0000_1000)) {
 							Console.WriteLine("ONESHOT");
-							CRA &= ((uint) ~0b0000_0001u) & 0xFF;
+							CRA &= (~0b0000_0001u & 0xFF);
 						}
 
 					}
